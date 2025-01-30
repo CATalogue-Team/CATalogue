@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "console": "externalTerminal",
+      "cwd": "e:/360MoveData/Users/86131/Desktop/CATalogue",
+      "program": "e:/360MoveData/Users/86131/Desktop/CATalogue/build/Debug/outDebug"
+    }
+  ]
+}
