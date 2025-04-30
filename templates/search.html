@@ -1,0 +1,15 @@
+<!-- templates/search.html -->
+<form action="/search">
+    <input type="text" name="breed" placeholder="搜索品种">
+    <input type="number" name="age" placeholder="搜索年龄">
+    <button type="submit">搜索</button>
+</form>
+
+{% for cat in cats %}
+    <div class="cat-card">
+        <img src="{{ url_for('static', filename='uploads/' + cat.image) }}">
+        <h3>{{ cat.breed }}</h3>
+        <p>年龄: {{ cat.age }}</p>
+        <p>{{ cat.description }}</p>
+    </div>
+{% endfor %}
