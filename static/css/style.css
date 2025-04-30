@@ -1,0 +1,33 @@
+
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+nav {
+    margin: 20px 0;
+}
+
+nav a {
+    margin-right: 15px;
+    text-decoration: none;
+}
+
+.cats-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.cat-card {
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.cat-card img {
+    max-width: 100%;
+    height: auto;
+}

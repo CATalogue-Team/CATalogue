@@ -1,0 +1,9 @@
+
+# Basic development requirements
+python-dotenv
+pytest
+flake8
+Flask-Login==0.6.2
+Flask-WTF==1.2.1
+WTForms==3.1.1
+Pillow==10.3.0

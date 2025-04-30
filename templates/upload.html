@@ -1,8 +1,22 @@
-<!-- templates/upload.html -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<h2>上传猫咪资料</h2>
 <form method="POST" enctype="multipart/form-data">
-    <input type="text" name="breed" placeholder="品种" required>
-    <input type="number" name="age" placeholder="年龄" required>
-    <textarea name="description" placeholder="描述"></textarea>
-    <input type="file" name="image" accept="image/*" required>
+    {{ form.hidden_tag() }}
+    <div>
+        {{ form.name.label }}<br>
+        {{ form.name(size=32) }}
+    </div>
+    <div>
+        {{ form.description.label }}<br>
+        {{ form.description(rows=4, cols=32) }}
+    </div>
+    <div>
+        {{ form.image.label }}<br>
+        {{ form.image() }}
+    </div>
     <button type="submit">上传</button>
 </form>
+{% endblock %}
