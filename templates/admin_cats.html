@@ -13,11 +13,11 @@
         <h3>{{ cat.name }}</h3>
         <p>{{ cat.description|truncate(100) }}</p>
         <div class="btn-group">
-            <a href="{{ url_for('cat_detail', cat_id=cat.id) }}" 
+            <a href="{{ url_for('cats.detail', cat_id=cat.id) }}" 
                class="btn btn-sm btn-outline-primary">查看</a>
-            <a href="{{ url_for('edit_cat', cat_id=cat.id) }}" 
+            <a href="{{ url_for('cats.edit', cat_id=cat.id) }}" 
                class="btn btn-sm btn-outline-secondary">编辑</a>
-            <form action="{{ url_for('delete_cat', cat_id=cat.id) }}" method="POST" style="display:inline;">
+            <form action="{{ url_for('cats.delete', cat_id=cat.id) }}" method="POST" style="display:inline;">
                 <button type="submit" class="btn btn-sm btn-outline-danger" 
                         onclick="return confirm('确定要删除这只猫咪吗？')">删除</button>
             </form>

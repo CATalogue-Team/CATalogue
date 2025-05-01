@@ -42,3 +42,39 @@ def upload():
         db.session.commit()
         return redirect(url_for('main.home'))
     return render_template('upload.html', form=form)
+
+@bp.route('/edit/<int:cat_id>', methods=['GET', 'POST'])
+@login_required
+def edit(cat_id):
+    if not current_user.is_admin:
+        return redirect(url_for('main.home'))
+    
+    cat = Cat.query.get(cat_id)
+    if not cat:
+        return redirect(url_for('main.home'))
+    
+    form = CatForm(obj=cat)
+    if form.validate_on_submit():
+        if form.image.data:
+            filename = secure_filename(form.image.data.filename)
+            form.image.data.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+            cat.image = filename
+        
+        cat.name = form.name.data
+        cat.description = form.description.data
+        db.session.commit()
+        return redirect(url_for('cats.detail', cat_id=cat.id))
+    
+    return render_template('edit_cat.html', form=form, cat=cat)
+
+@bp.route('/delete/<int:cat_id>', methods=['POST'])
+@login_required
+def delete(cat_id):
+    if not current_user.is_admin:
+        return redirect(url_for('main.home'))
+    
+    cat = Cat.query.get(cat_id)
+    if cat:
+        db.session.delete(cat)
+        db.session.commit()
+    return redirect(url_for('main.home'))

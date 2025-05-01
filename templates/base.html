@@ -12,12 +12,12 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('home') }}">猫咪信息中心</a>
+            <a class="navbar-brand" href="{{ url_for('main.home') }}">猫咪信息中心</a>
             <div class="navbar-nav">
                 {% if current_user.is_authenticated %}
                     {% if current_user.is_admin %}
-                        <a class="nav-link" href="{{ url_for('admin_cats') }}">猫咪管理</a>
-                        <a class="nav-link" href="{{ url_for('upload') }}">添加猫咪</a>
+                        <a class="nav-link" href="{{ url_for('admin.cats') }}">猫咪管理</a>
+                        <a class="nav-link" href="{{ url_for('cats.upload') }}">添加猫咪</a>
                     {% endif %}
                     <a class="nav-link" href="{{ url_for('logout') }}">退出</a>
                 {% else %}
