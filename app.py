@@ -76,6 +76,13 @@ def upload():
 @app.route('/search')
 @login_required
 def search():
+    query = request.args.get('q', '').lower()
+    if query:
+        filtered_cats = [
+            cat for cat in cats 
+            if query in cat['name'].lower() or query in cat['description'].lower()
+        ]
+        return render_template('search.html', cats=filtered_cats)
     return render_template('search.html', cats=cats)
 
 if __name__ == '__main__':

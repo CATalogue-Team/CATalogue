@@ -3,6 +3,10 @@
 
 {% block content %}
 <h2>猫咪信息查询</h2>
+<form method="GET" action="{{ url_for('search') }}">
+    <input type="text" name="q" placeholder="输入猫咪名称或描述">
+    <button type="submit">搜索</button>
+</form>
 <div class="cats-list">
     {% for cat in cats %}
     <div class="cat-card">
