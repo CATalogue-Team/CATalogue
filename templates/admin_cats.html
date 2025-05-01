@@ -13,9 +13,9 @@
         <h3>{{ cat.name }}</h3>
         <p>{{ cat.description|truncate(100) }}</p>
         <div class="btn-group">
-            <a href="{{ url_for('cat_detail', cat_id=loop.index0) }}" 
+            <a href="{{ url_for('cat_detail', cat_id=cat.id) }}" 
                class="btn btn-sm btn-outline-primary">查看</a>
-            <a href="{{ url_for('edit_cat', cat_id=loop.index0) }}" 
+            <a href="{{ url_for('edit_cat', cat_id=cat.id) }}" 
                class="btn btn-sm btn-outline-secondary">编辑</a>
         </div>
     </div>

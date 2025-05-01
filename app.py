@@ -116,6 +116,7 @@ def search():
 @app.route('/cat/<int:cat_id>')
 @login_required
 def cat_detail(cat_id):
+    print(f"DEBUG: 访问猫咪详情页，cat_id={cat_id}")  # 调试日志
     db = get_db()
     cat = db.execute(
         'SELECT * FROM cats WHERE id = ?', 
@@ -124,7 +125,10 @@ def cat_detail(cat_id):
     db.close()
     
     if not cat:
+        print(f"DEBUG: 未找到猫咪，cat_id={cat_id}")  # 调试日志
         return redirect(url_for('home'))
+    
+    print(f"DEBUG: 找到猫咪: {cat['name']}")  # 调试日志
     return render_template('cat_detail.html', 
                         cat=cat,
                         cat_id=cat_id,

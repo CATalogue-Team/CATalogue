@@ -15,12 +15,35 @@
     </div>
     <div class="form-group">
         {{ form.image.label }}
-        {{ form.image(class="form-control") }}
-        {% if cat['image'] %}
-        <p>当前图片: <img src="{{ url_for('static', filename='uploads/' + cat['image']) }}" width="100"></p>
-        {% endif %}
+        {{ form.image(class="form-control", id="imageUpload") }}
+        <div class="image-preview mt-2">
+            {% if cat['image'] %}
+            <p>当前图片:</p>
+            <img id="currentImage" src="{{ url_for('static', filename='uploads/' + cat['image']) }}" width="200" class="img-thumbnail">
+            {% else %}
+            <p>暂无图片</p>
+            <img id="currentImage" style="display:none;" width="200" class="img-thumbnail">
+            {% endif %}
+            <img id="imagePreview" style="display:none;" width="200" class="img-thumbnail">
+        </div>
     </div>
     <button type="submit" class="btn btn-primary">保存</button>
     <a href="{{ url_for('admin_cats') }}" class="btn btn-secondary">取消</a>
 </form>
+
+<script>
+document.getElementById('imageUpload').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('currentImage').style.display = 'none';
+            const preview = document.getElementById('imagePreview');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        }
+        reader.readAsDataURL(file);
+    }
+});
+</script>
 {% endblock %}
