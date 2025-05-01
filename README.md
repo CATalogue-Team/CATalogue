@@ -1,3 +1,62 @@
+# CATalogue - 猫咪信息管理系统
+
+## 功能特性
+
+### 用户认证
+- `/login` - 用户登录
+- `/logout` - 用户登出
+- `/register` - 新用户注册
+
+### 猫咪管理
+- `/` - 首页
+- `/search` - 搜索猫咪
+- `/cat/<id>` - 查看猫咪详情
+- `/cat/upload` - 上传新猫咪 (管理员)
+- `/cat/edit/<id>` - 编辑猫咪信息 (管理员)
+- `/cat/delete/<id>` - 删除猫咪 (管理员)
+
+### 后台管理
+- `/admin/cats` - 管理猫咪 (管理员)
+- `/admin/edit_cat/<id>` - 编辑猫咪 (管理员)
+- `/admin/delete_cat/<id>` - 删除猫咪 (管理员)
+- `/admin/approvals` - 审批新用户 (管理员)
+- `/admin/users` - 用户管理 (管理员)
+
+## 开发指南
+
+### 环境配置
+```bash
+pip install -r requirements.txt
+flask db init
+flask db migrate
+flask db upgrade
+```
+
+### 启动开发服务器
+```bash
+flask run
+```
+
+### 创建管理员账号
+```bash
+flask create-admin <username> <password>
+```
+
+## API端点
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | / | 首页 |
+| GET | /search | 搜索猫咪 |
+| GET | /cat/<id> | 猫咪详情 |
+| GET/POST | /cat/upload | 上传猫咪 |
+| GET/POST | /cat/edit/<id> | 编辑猫咪 |
+| POST | /cat/delete/<id> | 删除猫咪 |
+| GET | /admin/cats | 猫咪管理 |
+| GET/POST | /admin/edit_cat/<id> | 编辑猫咪(后台) |
+| POST | /admin/delete_cat/<id> | 删除猫咪(后台) |
+| GET/POST | /admin/approvals | 用户审批 |
+| GET/POST | /admin/users | 用户管理 |
 
 # CATalogue - 专业猫咪信息管理系统
 

@@ -19,9 +19,10 @@ def create_app(config_class=Config):
     
     # 初始化扩展
     db.init_app(app)
+    app.db = db  # 使db实例可通过app访问
     cache.init_app(app)
-    # 配置更高效的压缩算法
-    compress.init_app(app, {
+    # 初始化压缩扩展
+    app.config.update({
         'COMPRESS_ALGORITHM': 'gzip',
         'COMPRESS_LEVEL': 6,
         'COMPRESS_MIN_SIZE': 500,
@@ -32,6 +33,7 @@ def create_app(config_class=Config):
             'application/json'
         ]
     })
+    compress.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     
