@@ -11,7 +11,13 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
 app.config['DATABASE'] = 'cats.db'
 app.config['SQLITE_POOL_SIZE'] = 5
+app.config['TEMPLATES_AUTO_RELOAD'] = False  # 生产环境禁用模板自动重载
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 静态文件缓存1年
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+
+# 图片处理配置
+app.config['MAX_IMAGE_SIZE'] = 1024 * 1024 * 5  # 5MB
+app.config['ALLOWED_IMAGE_EXTENSIONS'] = ['jpg', 'png', 'jpeg', 'gif']
 
 # 添加缓存控制头
 @app.after_request
