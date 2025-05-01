@@ -49,4 +49,8 @@ def create_app(config_class=Config):
     
     return app
 
-from app import models
+from app.models import User
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
