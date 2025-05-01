@@ -7,18 +7,22 @@
     <input type="text" name="q" placeholder="输入猫咪名称或描述">
     <button type="submit">搜索</button>
 </form>
-{% if is_recommendation %}
+{% if is_recommendation and cats %}
 <h3>为您推荐以下猫咪：</h3>
 {% endif %}
 <div class="cats-list">
-    {% for cat in cats %}
-    <div class="cat-card">
-        {% if cat.image %}
-        <img src="{{ url_for('static', filename='uploads/' + cat.image) }}" alt="{{ cat.name }}">
-        {% endif %}
-        <h3>{{ cat.name }}</h3>
-        <p>{{ cat.description }}</p>
-    </div>
-    {% endfor %}
+    {% if no_results %}
+    <p class="no-results">没有找到匹配的猫咪，请尝试其他关键词。</p>
+    {% elif cats %}
+        {% for cat in cats %}
+        <div class="cat-card">
+            {% if cat.image %}
+            <img src="{{ url_for('static', filename='uploads/' + cat.image) }}" alt="{{ cat.name }}">
+            {% endif %}
+            <h3>{{ cat.name }}</h3>
+            <p>{{ cat.description }}</p>
+        </div>
+        {% endfor %}
+    {% endif %}
 </div>
 {% endblock %}

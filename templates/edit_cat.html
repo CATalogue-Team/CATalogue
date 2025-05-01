@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>上传猫咪资料</h2>
+<h2>编辑猫咪信息</h2>
 <form method="POST" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
     <div class="form-group">
@@ -16,8 +16,11 @@
     <div class="form-group">
         {{ form.image.label }}
         {{ form.image(class="form-control") }}
+        {% if cat['image'] %}
+        <p>当前图片: <img src="{{ url_for('static', filename='uploads/' + cat['image']) }}" width="100"></p>
+        {% endif %}
     </div>
-    <button type="submit" class="btn btn-primary">上传</button>
-    <a href="{{ url_for('admin_cats') }}" class="btn btn-secondary">返回管理</a>
+    <button type="submit" class="btn btn-primary">保存</button>
+    <a href="{{ url_for('admin_cats') }}" class="btn btn-secondary">取消</a>
 </form>
 {% endblock %}

@@ -82,10 +82,44 @@ def search():
             cat for cat in cats 
             if any(query in str(field).lower() for field in [cat['name'], cat['description']])
         ]
-        return render_template('search.html', cats=filtered_cats)
+        return render_template('search.html', 
+                            cats=filtered_cats,
+                            no_results=len(filtered_cats) == 0)
+    
     # 未查询时推荐最近添加的3只猫咪
     recommended_cats = cats[-3:] if len(cats) > 3 else cats
-    return render_template('search.html', cats=recommended_cats, is_recommendation=True)
+    return render_template('search.html', 
+                         cats=recommended_cats if recommended_cats else None,
+                         is_recommendation=bool(recommended_cats))
+
+@app.route('/admin/cats')
+@login_required
+def admin_cats():
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+    return render_template('admin_cats.html', cats=cats)
+
+@app.route('/admin/edit_cat/<int:cat_id>', methods=['GET', 'POST'])
+@login_required
+def edit_cat(cat_id):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+    
+    cat = next((c for c in cats if cats.index(c) == cat_id), None)
+    if not cat:
+        return redirect(url_for('admin_cats'))
+    
+    form = CatForm(obj=cat)
+    if form.validate_on_submit():
+        cat['name'] = form.name.data
+        cat['description'] = form.description.data
+        if form.image.data:
+            filename = secure_filename(form.image.data.filename)
+            form.image.data.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            cat['image'] = filename
+        return redirect(url_for('admin_cats'))
+    
+    return render_template('edit_cat.html', form=form, cat_id=cat_id)
 
 if __name__ == '__main__':
     app.run(debug=True)
