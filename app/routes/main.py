@@ -1,5 +1,5 @@
 
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, render_template, redirect, url_for, jsonify
 from flask_login import login_required
 from ..services.cat_service import CatService
 
@@ -17,3 +17,8 @@ def search():
                         cats=cats,
                         no_results=False,
                         is_recommendation=bool(cats))
+
+@bp.route('/ping')
+def ping():
+    """测试路由"""
+    return jsonify({'status': 'ok', 'message': 'pong'})
