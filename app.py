@@ -80,10 +80,12 @@ def search():
     if query:
         filtered_cats = [
             cat for cat in cats 
-            if query in cat['name'].lower() or query in cat['description'].lower()
+            if any(query in str(field).lower() for field in [cat['name'], cat['description']])
         ]
         return render_template('search.html', cats=filtered_cats)
-    return render_template('search.html', cats=cats)
+    # 未查询时推荐最近添加的3只猫咪
+    recommended_cats = cats[-3:] if len(cats) > 3 else cats
+    return render_template('search.html', cats=recommended_cats, is_recommendation=True)
 
 if __name__ == '__main__':
     app.run(debug=True)

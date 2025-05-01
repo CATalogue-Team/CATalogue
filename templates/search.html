@@ -7,6 +7,9 @@
     <input type="text" name="q" placeholder="输入猫咪名称或描述">
     <button type="submit">搜索</button>
 </form>
+{% if is_recommendation %}
+<h3>为您推荐以下猫咪：</h3>
+{% endif %}
 <div class="cats-list">
     {% for cat in cats %}
     <div class="cat-card">
