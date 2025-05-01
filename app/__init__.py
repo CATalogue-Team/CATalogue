@@ -37,10 +37,6 @@ def create_app(config_class=Config):
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
     
-    # 打印静态文件路径信息
-    print(f"静态文件目录: {app.static_folder}")
-    print(f"静态文件URL前缀: {app.static_url_path}")
-    
     # 性能优化中间件
     @app.after_request
     def add_header(response):

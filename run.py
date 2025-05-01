@@ -15,8 +15,10 @@ def main():
         app.root_path = project_root
         migrate = Migrate(app, app.db)
         
-        print(f"工作目录设置为: {os.getcwd()}")
-        print(f"应用根路径设置为: {app.root_path}")
+        # 添加静态文件路由调试
+        @app.route('/favicon.ico')
+        def favicon():
+            return app.send_static_file('favicon.ico')
         
         # 验证核心模块
         if not hasattr(app, 'extensions') or 'sqlalchemy' not in app.extensions:

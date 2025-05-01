@@ -113,6 +113,13 @@ flask create-admin <username> <password>
   - 数据导出功能
 
 ## 快速开始
+### Favicon配置
+1. 将favicon.ico文件放置在`static/`目录下
+2. 确保base.html模板中包含以下代码：
+```html
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+```
+
 ### 开发环境
 ```bash
 # 1. 创建虚拟环境
