@@ -3,7 +3,7 @@
 
 {% block content %}
 <h2>猫咪管理</h2>
-<a href="{{ url_for('cats.upload') }}" class="btn">添加新猫咪</a>
+<a href="{{ url_for('cats._create') }}" class="btn">添加新猫咪</a>
 <div class="cats-list">
     {% for cat in cats %}
     <div class="cat-card">
