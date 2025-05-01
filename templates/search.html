@@ -20,7 +20,9 @@
             <img src="{{ url_for('static', filename='uploads/' + cat.image) }}" alt="{{ cat.name }}">
             {% endif %}
             <h3>{{ cat.name }}</h3>
-            <p>{{ cat.description }}</p>
+            <p>{{ cat.description|truncate(100) }}</p>
+            <a href="{{ url_for('cat_detail', cat_id=cats.index(cat)) }}" 
+               class="btn btn-sm btn-outline-primary">查看详情</a>
         </div>
         {% endfor %}
     {% endif %}

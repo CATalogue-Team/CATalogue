@@ -11,8 +11,13 @@
         <img src="{{ url_for('static', filename='uploads/' + cat.image) }}" alt="{{ cat.name }}">
         {% endif %}
         <h3>{{ cat.name }}</h3>
-        <p>{{ cat.description }}</p>
-        <a href="{{ url_for('edit_cat', cat_id=loop.index0) }}" class="btn">编辑</a>
+        <p>{{ cat.description|truncate(100) }}</p>
+        <div class="btn-group">
+            <a href="{{ url_for('cat_detail', cat_id=loop.index0) }}" 
+               class="btn btn-sm btn-outline-primary">查看</a>
+            <a href="{{ url_for('edit_cat', cat_id=loop.index0) }}" 
+               class="btn btn-sm btn-outline-secondary">编辑</a>
+        </div>
     </div>
     {% endfor %}
 </div>

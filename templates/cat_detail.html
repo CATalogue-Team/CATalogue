@@ -1,0 +1,24 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="cat-detail">
+    <h2>{{ cat.name }}</h2>
+    {% if cat.image %}
+    <img src="{{ url_for('static', filename='uploads/' + cat.image) }}" 
+         alt="{{ cat.name }}" 
+         class="img-fluid rounded mb-3">
+    {% endif %}
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">猫咪详情</h5>
+            <p class="card-text">{{ cat.description }}</p>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('edit_cat', cat_id=cat_id) }}" 
+               class="btn btn-primary">编辑</a>
+            {% endif %}
+            <a href="{{ url_for('search') }}" class="btn btn-secondary">返回</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -92,6 +92,15 @@ def search():
                          cats=recommended_cats if recommended_cats else None,
                          is_recommendation=bool(recommended_cats))
 
+@app.route('/cat/<int:cat_id>')
+@login_required
+def cat_detail(cat_id):
+    if cat_id < 0 or cat_id >= len(cats):
+        return redirect(url_for('home'))
+    return render_template('cat_detail.html', 
+                        cat=cats[cat_id],
+                        cat_id=cat_id)
+
 @app.route('/admin/cats')
 @login_required
 def admin_cats():
