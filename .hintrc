@@ -1,0 +1,31 @@
+{
+  "extends": [
+    "development"
+  ],
+  "hints": {
+    "compat-api/css": [
+      "default",
+      {
+        "ignore": [
+          "-webkit-text-size-adjust",
+          "text-align: -webkit-match-parent",
+          "text-align: inherit"
+        ]
+      }
+    ],
+    "css-prefix-order": "off"
+  },
+  "browserslist": [
+    "defaults",
+    "not ie 11",
+    "not and_chr <= 135",
+    "not and_ff <= 137",
+    "not chrome <= 135",
+    "not edge <= 135",
+    "not firefox <= 137",
+    "not ios_saf <= 18.4",
+    "not opera <= 117",
+    "not safari <= 18.4",
+    "not samsung <= 27"
+  ]
+}
