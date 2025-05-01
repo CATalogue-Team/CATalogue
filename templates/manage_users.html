@@ -1,0 +1,42 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<h2>用户管理</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>用户名</th>
+            <th>注册时间</th>
+            <th>状态</th>
+            <th>管理员</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.username }}</td>
+            <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ user.status }}</td>
+            <td>{% if user.is_admin %}是{% else %}否{% endif %}</td>
+            <td>
+                {% if user.id != current_user.id %}
+                <form method="POST" style="display:inline;">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    {{ form.hidden_tag() }}
+                    {{ form.action }}
+                    <button type="submit" class="btn btn-sm 
+                        {% if form.action.data == 'promote' %}btn-success
+                        {% elif form.action.data == 'demote' %}btn-warning
+                        {% else %}btn-danger{% endif %}">
+                        {{ dict(form.action.choices)[form.action.data] }}
+                    </button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

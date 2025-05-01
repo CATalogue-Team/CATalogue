@@ -14,10 +14,10 @@
             <h5 class="card-title">猫咪详情</h5>
             <p class="card-text">{{ cat.description }}</p>
             {% if is_admin %}
-            <a href="{{ url_for('edit_cat', cat_id=cat_id) }}" 
+            <a href="{{ url_for('cats.edit', cat_id=cat_id) }}" 
                class="btn btn-primary">编辑</a>
             {% endif %}
-            <a href="{{ url_for('search') }}" class="btn btn-secondary">返回</a>
+            <a href="{{ url_for('main.search') }}" class="btn btn-secondary">返回</a>
         </div>
     </div>
 </div>

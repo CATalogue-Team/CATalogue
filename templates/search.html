@@ -3,7 +3,7 @@
 
 {% block content %}
 <h2>猫咪信息查询</h2>
-<form method="GET" action="{{ url_for('search') }}">
+<form method="GET" action="{{ url_for('main.search') }}">
     <input type="text" name="q" placeholder="输入猫咪名称或描述">
     <button type="submit">搜索</button>
 </form>
@@ -21,7 +21,7 @@
             {% endif %}
             <h3>{{ cat.name }}</h3>
             <p>{{ cat.description|truncate(100) }}</p>
-            <a href="{{ url_for('cat_detail', cat_id=cat.id) }}" 
+            <a href="{{ url_for('cats.detail', cat_id=cat.id) }}" 
                class="btn btn-sm btn-outline-primary">查看详情</a>
         </div>
         {% endfor %}

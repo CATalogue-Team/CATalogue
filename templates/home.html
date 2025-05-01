@@ -7,18 +7,18 @@
     <p>欢迎, {{ current_user.username }}!</p>
     {% if current_user.is_admin %}
         <nav>
-            <a href="{{ url_for('upload') }}">上传猫咪资料</a>
-            <a href="{{ url_for('logout') }}">退出</a>
+            <a href="{{ url_for('cats.upload') }}">上传猫咪资料</a>
+            <a href="{{ url_for('auth.logout') }}">退出</a>
         </nav>
     {% else %}
         <nav>
-            <a href="{{ url_for('search') }}">查询猫咪信息</a>
-            <a href="{{ url_for('logout') }}">退出</a>
+            <a href="{{ url_for('main.search') }}">查询猫咪信息</a>
+            <a href="{{ url_for('auth.logout') }}">退出</a>
         </nav>
     {% endif %}
 {% else %}
     <nav>
-        <a href="{{ url_for('login') }}">登录</a>
+        <a href="{{ url_for('auth.login') }}">登录</a>
     </nav>
 {% endif %}
 {% endblock %}

@@ -1,0 +1,27 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<h2>用户注册</h2>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+        {{ form.username.label }}
+        {{ form.username(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.password.label }}
+        {{ form.password(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.password_confirm.label }}
+        {{ form.password_confirm(class="form-control") }}
+    </div>
+    <div class="form-group form-check">
+        {{ form.is_admin(class="form-check-input") }}
+        {{ form.is_admin.label(class="form-check-label") }}
+        <small class="form-text text-muted">管理员账号需要现有管理员审批</small>
+    </div>
+    <button type="submit" class="btn btn-primary">注册</button>
+</form>
+{% endblock %}
