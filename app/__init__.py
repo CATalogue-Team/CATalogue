@@ -2,7 +2,6 @@
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
-from flask_compress import Compress
 from flask_login import LoginManager
 from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import Config
@@ -10,7 +9,6 @@ import os
 
 db = SQLAlchemy()
 cache = Cache()
-compress = Compress()
 login_manager = LoginManager()
 
 def create_app(config_class=Config):
@@ -21,19 +19,6 @@ def create_app(config_class=Config):
     db.init_app(app)
     app.db = db  # 使db实例可通过app访问
     cache.init_app(app)
-    # 初始化压缩扩展
-    app.config.update({
-        'COMPRESS_ALGORITHM': 'gzip',
-        'COMPRESS_LEVEL': 6,
-        'COMPRESS_MIN_SIZE': 500,
-        'COMPRESS_MIMETYPES': [
-            'text/html',
-            'text/css',
-            'application/javascript',
-            'application/json'
-        ]
-    })
-    compress.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     
@@ -71,10 +56,6 @@ def create_app(config_class=Config):
         # 敏感内容不缓存
         else:
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
-            
-        # 启用Gzip压缩
-        if 'gzip' in request.headers.get('Accept-Encoding', ''):
-            response.headers['Content-Encoding'] = 'gzip'
             
         return response
     
