@@ -37,9 +37,16 @@ flask db upgrade
 flask run
 ```
 
-### 创建管理员账号
+### 账号管理命令
 ```bash
+# 创建管理员账号
 flask create-admin <username> <password>
+
+# 创建普通用户账号
+flask create-user <username> <password>
+
+# 列出所有用户
+flask list-users
 ```
 
 ## API端点

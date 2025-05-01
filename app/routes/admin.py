@@ -1,66 +1,47 @@
 
-from flask import Blueprint, render_template, redirect, url_for, request
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, redirect, url_for, request, current_app
+from flask_login import login_required
 import os
+from werkzeug.utils import secure_filename
 from ..services.cat_service import CatService
-from ..forms import CatForm
+from ..services.user_service import UserService
+from ..forms import CatForm, UserForm
+from ..decorators import admin_required
+from .base_crud import crud_blueprint
 
-bp = Blueprint('admin', __name__, url_prefix='/admin')
+# 创建管理员蓝图
+bp, crud_route = crud_blueprint('admin', __name__, url_prefix='/admin')
 
-@bp.route('/cats')
-@login_required
-def cats():
-    if not current_user.is_admin:
-        return redirect(url_for('main.home'))
-    cats = CatService.get_all_cats()
-    return render_template('admin_cats.html', cats=cats)
-
-@bp.route('/edit_cat/<int:cat_id>', methods=['GET', 'POST'])
-@login_required
-def edit_cat(cat_id):
-    if not current_user.is_admin:
-        return redirect(url_for('main.home'))
+# 猫咪管理CRUD
+@crud_route('cats', CatService, CatForm, 'admin_cats.html', 'edit_cat.html')
+class CatCRUD:
+    """猫咪管理CRUD扩展"""
     
-    cat = CatService.get_cat(cat_id)
-    if not cat:
-        return redirect(url_for('admin.cats'))
-    
-    form = CatForm()
-    
-    if request.method == 'GET':
-        form.name.data = cat.name
-        form.description.data = cat.description
-    
-    if form.validate_on_submit():
-        update_data = {
-            'name': form.name.data,
-            'description': form.description.data
-        }
-        
+    @staticmethod
+    def handle_image(form, item=None):
+        """处理图片上传"""
         if form.image.data:
-            if cat.image and os.path.exists(os.path.join(current_app.config['UPLOAD_FOLDER'], cat.image)):
-                os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], cat.image))
             filename = secure_filename(form.image.data.filename)
             form.image.data.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
-            update_data['image'] = filename
-        
-        CatService.update_cat(cat_id, **update_data)
-        return redirect(url_for('admin.cats'))
+            return filename
+        return item.image if item else None
     
-    return render_template('edit_cat.html',
-                         form=form,
-                         cat_id=cat_id,
-                         cat=cat)
+    @staticmethod
+    def before_delete(item):
+        """删除前的处理"""
+        if item.image and os.path.exists(os.path.join(current_app.config['UPLOAD_FOLDER'], item.image)):
+            os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], item.image))
 
-@bp.route('/delete_cat/<int:cat_id>', methods=['POST'])
-@login_required
-def delete_cat(cat_id):
-    if not current_user.is_admin:
-        return redirect(url_for('main.home'))
+# 用户管理CRUD
+@crud_route('users', UserService, UserForm, 'admin_users.html', 'edit_user.html')
+class UserCRUD:
+    """用户管理CRUD扩展"""
     
-    cat = CatService.get_cat(cat_id)
-    if cat and cat.image and os.path.exists(os.path.join(current_app.config['UPLOAD_FOLDER'], cat.image)):
-        os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], cat.image))
-    
-    CatService.delete_cat(cat_id)
-    return redirect(url_for('admin.cats'))
+    @staticmethod
+    def before_update(id, **data):
+        """更新前的处理"""
+        return {'is_admin': data['is_admin']}  # 只更新is_admin字段
+
+# 应用管理员权限装饰器
+for endpoint in bp.view_functions:
+    bp.view_functions[endpoint] = login_required(admin_required(bp.view_functions[endpoint]))

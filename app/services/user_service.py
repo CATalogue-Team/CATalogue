@@ -1,15 +1,15 @@
 
 from typing import List, Optional
 from ..models import User
-from .. import db
+from .base_service import BaseService
 
-class UserService:
+class UserService(BaseService):
     """用户服务层"""
     
     @staticmethod
     def get_user(user_id: int) -> Optional[User]:
         """获取单个用户信息"""
-        return User.query.get(user_id)
+        return BaseService.get(User, user_id)
     
     @staticmethod
     def get_user_by_username(username: str) -> Optional[User]:
@@ -27,17 +27,9 @@ class UserService:
         return User.query.all()
     
     @staticmethod
-    def create_user(username: str, password: str, is_admin: bool = False) -> User:
+    def create_user(**kwargs) -> User:
         """创建用户账号"""
-        user = User(
-            username=username,
-            password=password,
-            is_admin=is_admin,
-            status='pending'
-        )
-        db.session.add(user)
-        db.session.commit()
-        return user
+        return BaseService.create(User, **kwargs)
     
     @staticmethod
     def approve_user(user_id: int, approved_by: int) -> bool:
@@ -48,7 +40,7 @@ class UserService:
             
         user.status = 'approved'
         user.approved_by = approved_by
-        db.session.commit()
+        BaseService.update(User, user_id, status='approved', approved_by=approved_by)
         return True
     
     @staticmethod
@@ -59,27 +51,15 @@ class UserService:
             return False
             
         user.status = 'rejected'
-        db.session.commit()
+        BaseService.update(User, user_id, status='rejected')
         return True
     
     @staticmethod
     def update_user_role(user_id: int, is_admin: bool) -> bool:
         """更新用户角色"""
-        user = User.query.get(user_id)
-        if not user:
-            return False
-            
-        user.is_admin = is_admin
-        db.session.commit()
-        return True
+        return BaseService.update(User, user_id, is_admin=is_admin) is not None
     
     @staticmethod
     def delete_user(user_id: int) -> bool:
         """删除用户"""
-        user = User.query.get(user_id)
-        if not user:
-            return False
-            
-        db.session.delete(user)
-        db.session.commit()
-        return True
+        return BaseService.delete(User, user_id)

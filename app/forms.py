@@ -35,3 +35,7 @@ class UserManagementForm(FlaskForm):
         ('demote', '降级为普通用户'),
         ('delete', '删除账号')
     ], validators=[DataRequired()])
+
+class UserForm(FlaskForm):
+    username = StringField('用户名', validators=[DataRequired()])
+    is_admin = BooleanField('管理员权限')

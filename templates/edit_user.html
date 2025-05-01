@@ -1,0 +1,23 @@
+
+{% extends "base.html" %}
+
+{% block title %}编辑用户{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>编辑用户</h2>
+    <form method="POST" action="{{ url_for('admin.edit_user', user_id=user_id) }}">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.username.label }}
+            {{ form.username(class="form-control", readonly=true) }}
+        </div>
+        <div class="form-group form-check">
+            {{ form.is_admin(class="form-check-input") }}
+            {{ form.is_admin.label(class="form-check-label") }}
+        </div>
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">取消</a>
+    </form>
+</div>
+{% endblock %}
