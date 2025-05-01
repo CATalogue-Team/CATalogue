@@ -1,73 +1,118 @@
 
-{% extends "base.html" %}
-
-{% block content %}
-<h2>编辑猫咪信息</h2>
-<form method="POST" enctype="multipart/form-data">
-    {{ form.hidden_tag() }}
-    <div class="form-group">
-        {{ form.name.label }}
-        {{ form.name(class="form-control") }}
-    </div>
-    <div class="form-group">
-        {{ form.description.label }}
-        {{ form.description(class="form-control") }}
-    </div>
-    <div class="form-group">
-        {{ form.image.label }}
-        {{ form.image(class="form-control", id="imageUpload") }}
-        <div class="image-preview mt-2">
-            {% if cat['image'] %}
-            <p>当前图片:</p>
-            <img id="currentImage" src="{{ url_for('static', filename='uploads/' + cat['image']) }}" width="200" class="img-thumbnail">
-            {% else %}
-            <p>暂无图片</p>
-            <img id="currentImage" style="display:none;" width="200" class="img-thumbnail">
-            {% endif %}
-            <img id="imagePreview" style="display:none;" width="200" class="img-thumbnail">
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="bi bi-pencil-square me-2"></i>编辑猫咪信息
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.name.id }}" class="form-label">
+                                <i class="bi bi-tag"></i> 猫咪名字
+                            </label>
+                            {{ form.name(class="form-control") }}
+                            <div class="invalid-feedback">
+                                请输入猫咪名字
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.description.id }}" class="form-label">
+                                <i class="bi bi-card-text"></i> 描述信息
+                            </label>
+                            {{ form.description(class="form-control", rows="4") }}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.image.id }}" class="form-label">
+                                <i class="bi bi-image"></i> 猫咪照片
+                            </label>
+                            {{ form.image(class="form-control", id="imageUpload") }}
+                            <div class="form-text text-muted">
+                                支持 JPG/PNG 格式，大小不超过5MB
+                            </div>
+                            
+                            <div class="image-preview mt-3">
+                                {% if cat['image'] %}
+                                <p class="text-muted"><i class="bi bi-image-fill"></i> 当前图片:</p>
+                                <img id="currentImage" 
+                                     src="{{ url_for('static', filename='uploads/' + cat['image']) }}" 
+                                     width="200" 
+                                     class="img-thumbnail rounded">
+                                {% else %}
+                                <p class="text-muted"><i class="bi bi-image"></i> 暂无图片</p>
+                                <img id="currentImage" 
+                                     style="display:none;" 
+                                     width="200" 
+                                     class="img-thumbnail rounded">
+                                {% endif %}
+                                <img id="imagePreview" 
+                                     style="display:none;" 
+                                     width="200" 
+                                     class="img-thumbnail rounded mt-2">
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{{ url_for('cats.detail', cat_id=cat_id) }}" 
+                               class="btn btn-outline-secondary me-md-2">
+                                <i class="bi bi-x-circle"></i> 取消
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> 保存更改
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
-    <button type="submit" class="btn btn-primary">保存</button>
-    <a href="{{ url_for('admin.cats') }}" class="btn btn-secondary">取消</a>
-</form>
+</div>
 
 <script>
-// 确保DOM加载完成后执行
 document.addEventListener('DOMContentLoaded', function() {
     const uploadInput = document.getElementById('imageUpload');
+    const maxSize = 5 * 1024 * 1024; // 5MB
     
-    // 更健壮的事件监听
     if (uploadInput) {
-        uploadInput.addEventListener('change', handleImagePreview);
-    }
-
-    function handleImagePreview(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        // 验证图片类型
-        const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        if (!validTypes.includes(file.type)) {
-            alert('请选择有效的图片格式 (JPEG, PNG, GIF)');
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const currentImg = document.getElementById('currentImage');
-            const preview = document.getElementById('imagePreview');
+        uploadInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
             
-            if (currentImg) currentImg.style.display = 'none';
-            if (preview) {
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-                preview.alt = '图片预览';
+            // 验证图片类型和大小
+            const validTypes = ['image/jpeg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                alert('请选择 JPG 或 PNG 格式的图片');
+                this.value = '';
+                return;
             }
-        };
-        reader.onerror = function() {
-            console.error('图片读取失败');
-        };
-        reader.readAsDataURL(file);
+            
+            if (file.size > maxSize) {
+                alert('图片大小不能超过5MB');
+                this.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const currentImg = document.getElementById('currentImage');
+                const preview = document.getElementById('imagePreview');
+                
+                if (currentImg) currentImg.style.display = 'none';
+                if (preview) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    preview.alt = '新图片预览';
+                }
+            };
+            reader.readAsDataURL(file);
+        });
     }
 });
 </script>

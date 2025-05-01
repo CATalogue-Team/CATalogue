@@ -2,23 +2,44 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>欢迎来到猫咪信息中心</h2>
-{% if current_user.is_authenticated %}
-    <p>欢迎, {{ current_user.username }}!</p>
-    {% if current_user.is_admin %}
-        <nav>
-            <a href="{{ url_for('cats.upload') }}">上传猫咪资料</a>
-            <a href="{{ url_for('auth.logout') }}">退出</a>
-        </nav>
-    {% else %}
-        <nav>
-            <a href="{{ url_for('main.search') }}">查询猫咪信息</a>
-            <a href="{{ url_for('auth.logout') }}">退出</a>
-        </nav>
-    {% endif %}
-{% else %}
-    <nav>
-        <a href="{{ url_for('auth.login') }}">登录</a>
-    </nav>
-{% endif %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="display-4 mb-4">
+                <i class="bi bi-heart-pulse"></i> 欢迎来到猫咪信息中心
+            </h1>
+            
+            {% if current_user.is_authenticated %}
+                <div class="alert alert-success">
+                    <h4>欢迎回来, {{ current_user.username }}!</h4>
+                    <p>您现在可以开始查询或管理猫咪信息</p>
+                </div>
+                
+                <div class="d-grid gap-3 d-sm-flex justify-content-sm-center mt-4">
+                    <a href="{{ url_for('main.search') }}" class="btn btn-primary btn-lg px-4 gap-3">
+                        <i class="bi bi-search"></i> 查询猫咪
+                    </a>
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('admin.cats') }}" class="btn btn-outline-primary btn-lg px-4">
+                        <i class="bi bi-gear"></i> 管理后台
+                    </a>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <h4>请先登录系统</h4>
+                    <p>登录后即可查询猫咪信息</p>
+                </div>
+                <div class="d-grid gap-3 d-sm-flex justify-content-sm-center mt-4">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-4 gap-3">
+                        <i class="bi bi-box-arrow-in-right"></i> 用户登录
+                    </a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-secondary btn-lg px-4">
+                        <i class="bi bi-person-plus"></i> 注册账号
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 {% endblock %}
