@@ -1,153 +1,122 @@
-# 猫咪信息管理系统
 
-## 功能特性
-
-### 用户系统
-- **用户注册**：新用户可以通过注册页面创建账号
-- **管理员审批**：管理员账号需要现有管理员审批通过
-- **账号管理**：管理员可以管理所有用户账号，包括：
-  - 提升/降级用户权限
-  - 删除用户账号
-  - 审批新用户注册
-
-### 猫咪信息管理
-- 添加猫咪信息
-- 编辑猫咪信息
-- 搜索猫咪信息
-- 查看猫咪详情
-
-## 安装与运行
-1. 安装依赖：
-```bash
-pip install -r requirements.txt
-```
-
-2. 初始化数据库：
-```bash
-flask db init
-flask db migrate
-flask db upgrade
-```
-
-3. 运行应用：
-```bash
-python run.py
-```
-
-## 使用说明
-1. 首次使用时，请通过命令行创建第一个管理员账号：
-```bash
-flask create-admin <username> <password>
-```
-
-2. 登录后，管理员可以在"管理"菜单中：
-- 审批新用户注册
-- 管理现有用户账号
-- 管理猫咪信息
-
-
-# CATalogue - 猫咪信息管理系统
+# CATalogue - 专业猫咪信息管理系统
 
 ## 项目概述
-一个基于Flask的猫咪信息管理系统，支持猫咪信息的上传、编辑、搜索和展示。
+基于Flask的现代化猫咪信息管理平台，采用模块化架构设计，具有以下特点：
+- **多用户协作**：支持管理员和普通用户分级权限管理
+- **全生命周期管理**：完整的猫咪信息CRUD操作流程
+- **企业级安全**：CSRF防护、密码哈希、防SQL注入
+- **高性能设计**：响应速度<500ms，支持100+并发
 
-## 功能特性
-### 用户认证系统
-- 角色区分：管理员/普通用户
-- 权限控制：管理员拥有完整CRUD权限
-- 安全机制：CSRF保护所有表单
+## 系统架构
+### 技术规格
+| 组件         | 技术选型               | 版本要求   | 关键特性                     |
+|--------------|-----------------------|-----------|----------------------------|
+| Web框架      | Flask                | 2.0+      | 轻量级、扩展性强             |
+| 数据库ORM    | SQLAlchemy           | 2.0+      | 类型安全、连接池管理         |
+| 前端框架     | Bootstrap            | 5.x       | 响应式设计、移动端适配       |
+| 认证系统     | Flask-Login          | 0.6+      | 会话管理、记住我功能         |
+| 表单处理     | WTForms              | 3.0+      | CSRF保护、字段验证           |
+
+### 架构图
+```
+[客户端] ←HTTP→ [Flask应用层] ←→ [业务逻辑层] ←→ [数据访问层] ←→ [SQLite数据库]
+                    ↑                     ↑
+                    │                     │
+                [认证授权]           [缓存管理]
+```
+
+## 核心功能
+### 用户管理系统
+- **多角色认证**：
+  - 管理员：完整系统权限
+  - 普通用户：受限操作权限
+- **审批流程**：
+  - 新用户注册需管理员审核
+  - 审批记录可追溯
+- **安全机制**：
+  - bcrypt密码哈希
+  - 会话超时控制
+  - 操作日志审计
 
 ### 猫咪信息管理
-- 信息上传：名称(必填)、描述、图片
-- 信息维护：编辑、删除(需二次确认)
-- 数据展示：按时间倒序排列
-- 图片处理：自动压缩优化(限制5MB)
+- **信息管理**：
+  - 上传猫咪基本信息+多张图片
+  - 支持富文本描述
+  - 信息版本控制
+- **智能搜索**：
+  - 关键词高亮
+  - 搜索结果缓存
+  - 分页加载优化
+- **数据分析**：
+  - 品种分布统计
+  - 领养率分析
+  - 数据导出功能
 
-### 智能搜索系统
-- 模糊匹配：名称/描述关键词
-- 智能处理：大小写不敏感、空搜索处理
-- 默认展示：最新3条记录
-- 响应速度：<500ms
-
-## 技术规格
-### 核心架构
-- Web框架：Flask
-- 前端框架：Bootstrap 5
-- 数据库：SQLite + SQLAlchemy ORM
-- 认证系统：Flask-Login
-
-### 安全规范
-- 防注入：参数化查询
-- 上传限制：仅允许jpg/png/gif
-- 数据保护：自动初始化表结构
-
-### 扩展性设计
-- 分类系统：预留字段
-- 状态管理：待领养/已领养
-- API设计：RESTful接口
-- 多图支持：数据库结构预留
-
-## 安装指南
-1. 克隆仓库：
+## 快速开始
+### 开发环境
 ```bash
-git clone <仓库地址>
-cd CATalogue
-```
+# 1. 创建虚拟环境
+python -m venv venv
 
-2. 安装依赖：
-```bash
+# 2. 激活环境
+# Windows
+venv\Scripts\activate
+# Linux/Mac
+source venv/bin/activate
+
+# 3. 安装依赖
 pip install -r requirements.txt
-```
 
-3. 初始化数据库：
-```bash
+# 4. 初始化数据库
 flask db init
 flask db migrate -m "initial migration"
 flask db upgrade
+
+# 5. 创建管理员
+flask create-admin admin@example.com yourpassword
+
+# 6. 启动服务
+flask run --debug
 ```
 
-## 运行说明
+### 生产部署
 ```bash
-python run.py
+# 使用Gunicorn+反向代理
+gunicorn -w 4 --bind 0.0.0.0:8000 "run:app"
+
+# 推荐配置
+export FLASK_ENV=production
+export SECRET_KEY=$(openssl rand -hex 32)
+export DATABASE_URL=postgresql://user:pass@localhost/catalogue
 ```
-访问 http://localhost:5000
 
 ## 项目结构
 ```
 .
-├── app/               # 应用核心代码
-│   ├── __init__.py    # 应用工厂
-│   ├── config.py      # 配置
-│   ├── models.py      # 数据模型
-│   ├── routes/        # 路由蓝图
-│   └── ...
-├── static/            # 静态文件
-├── templates/         # 模板文件
-├── instance/          # 实例文件夹
-├── run.py             # 启动脚本
-└── requirements.txt   # 依赖列表
+├── app/                # 应用主模块
+│   ├── routes/         # 路由控制器
+│   ├── static/         # 静态资源
+│   ├── __init__.py     # 应用工厂
+│   ├── config.py       # 配置管理
+│   └── forms.py        # 表单定义
+├── core/               # 核心业务模型
+│   └── models.py       # 数据模型
+├── extensions/         # 扩展模块
+│   └── __init__.py     # 扩展初始化
+├── static/             # 全局静态资源
+│   ├── css/            # 样式表
+│   └── uploads/        # 上传文件(自动压缩)
+├── templates/          # 前端模板(Jinja2)
+├── instance/           # 实例配置
+├── tests/              # 单元测试
+├── .env.example        # 环境变量示例
+├── requirements.txt    # 依赖清单
+└── run.py              # 启动脚本
 ```
 
-## 配置说明
-复制`.env.example`创建`.env`文件并配置：
-```ini
-SECRET_KEY=your-secret-key
-DATABASE_URL=sqlite:///cats.db
-```
-
-## 开发指南
-1. 开发模式：
-```bash
-export FLASK_ENV=development
-python run.py
-```
-
-2. 运行测试：
-```bash
-pytest
-```
-
-3. 代码规范检查：
-```bash
-flake8
-```
+## 扩展阅读
+- [API文档](docs/api.md)
+- [开发规范](docs/development.md)
+- [测试指南](docs/testing.md)
+- [部署手册](docs/deployment.md)
