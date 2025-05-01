@@ -1,13 +1,31 @@
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, FileField, TextAreaField, PasswordField, BooleanField, SelectField
-from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
+from wtforms import StringField, FileField, TextAreaField, PasswordField, BooleanField, SelectField, IntegerField
+from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length, NumberRange
 from app.models import User
 
 class CatForm(FlaskForm):
-    name = StringField('猫咪名字', validators=[DataRequired()])
-    description = TextAreaField('描述')
+    name = StringField('猫咪名字', validators=[
+        DataRequired(),
+        Length(min=2, max=100, message='名字长度需在2-100字符之间')
+    ])
+    breed = StringField('品种', validators=[
+        Length(max=50, message='品种长度不能超过50字符')
+    ])
+    age = IntegerField('年龄', validators=[
+        NumberRange(min=0, max=30, message='年龄需在0-30之间')
+    ])
+    description = TextAreaField('描述', validators=[
+        Length(max=500, message='描述不能超过500字符')
+    ])
     image = FileField('猫咪图片')
+    is_adopted = BooleanField('已被领养')
+
+    def validate_image(self, field):
+        if field.data:
+            filename = field.data.filename.lower()
+            if not (filename.endswith('.jpg') or filename.endswith('.png')):
+                raise ValidationError('仅支持JPG/PNG格式图片')
 
 class RegisterForm(FlaskForm):
     username = StringField('用户名', validators=[DataRequired()])

@@ -18,6 +18,9 @@ def init_database():
     with app.app_context():
         try:
             logger.info("开始数据库初始化流程...")
+            # 显示数据库配置信息
+            db_uri = app.config['SQLALCHEMY_DATABASE_URI']
+            logger.info(f"数据库位置: {db_uri.split('///')[-1]}")
             
             # 1. 创建所有表
             logger.info("正在创建数据库表...")
@@ -31,6 +34,7 @@ def init_database():
             init_sample_data()
             
             logger.info("数据库初始化完成")
+            logger.info(f"数据库文件位置: {app.config['SQLALCHEMY_DATABASE_URI'].split('///')[-1]}")
             
         except Exception as e:
             logger.error(f"初始化失败: {str(e)}")
@@ -57,10 +61,20 @@ def init_sample_data():
     """初始化示例猫咪数据"""
     if Cat.query.count() == 0:
         logger.info("正在创建示例猫咪数据...")
+        
+        # 确保管理员用户存在
+        admin = User.query.filter_by(username='admin').first()
+        if not admin:
+            logger.error("必须先创建管理员账号才能初始化示例数据")
+            return
+            
         cats = [
-            Cat(name='橘猫', description='可爱的橘色猫咪', created_at=datetime.utcnow()),
-            Cat(name='黑猫', description='神秘的黑猫', created_at=datetime.utcnow()),
-            Cat(name='白猫', description='纯洁的白猫', created_at=datetime.utcnow())
+            Cat(name='橘猫', description='可爱的橘色猫咪', 
+                user_id=admin.id, created_at=datetime.utcnow()),
+            Cat(name='黑猫', description='神秘的黑猫', 
+                user_id=admin.id, created_at=datetime.utcnow()),
+            Cat(name='白猫', description='纯洁的白猫', 
+                user_id=admin.id, created_at=datetime.utcnow())
         ]
         db.session.bulk_save_objects(cats)
         db.session.commit()
