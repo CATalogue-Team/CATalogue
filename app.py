@@ -3,11 +3,28 @@ from flask import Flask, render_template, redirect, url_for, request
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from auth import User, users
 import sqlite3
+import threading
 from contextlib import closing
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
 app.config['DATABASE'] = 'cats.db'
+app.config['SQLITE_POOL_SIZE'] = 5
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+
+# 添加缓存控制头
+@app.after_request
+def add_header(response):
+    if 'Cache-Control' not in response.headers:
+        if request.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'public, max-age=31536000'
+        else:
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return response
+
+# 数据库连接池
+_db_connections = {}
 
 def init_db():
     with closing(sqlite3.connect(app.config['DATABASE'])) as db:
@@ -16,9 +33,18 @@ def init_db():
         db.commit()
 
 def get_db():
-    db = sqlite3.connect(app.config['DATABASE'])
-    db.row_factory = sqlite3.Row
-    return db
+    thread_id = threading.get_ident()
+    if thread_id not in _db_connections:
+        _db_connections[thread_id] = sqlite3.connect(app.config['DATABASE'])
+        _db_connections[thread_id].row_factory = sqlite3.Row
+    return _db_connections[thread_id]
+
+@app.teardown_appcontext
+def close_db(error):
+    thread_id = threading.get_ident()
+    if thread_id in _db_connections:
+        _db_connections[thread_id].close()
+        del _db_connections[thread_id]
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -143,6 +169,55 @@ def admin_cats():
     cats = db.execute('SELECT * FROM cats ORDER BY created_at DESC').fetchall()
     db.close()
     return render_template('admin_cats.html', cats=cats)
+
+@app.route('/admin/edit_cat/<int:cat_id>', methods=['GET', 'POST'])
+@login_required
+def edit_cat(cat_id):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+    
+    db = get_db()
+    cat = db.execute(
+        'SELECT * FROM cats WHERE id = ?', 
+        [cat_id]
+    ).fetchone()
+    
+    if not cat:
+        db.close()
+        return redirect(url_for('admin_cats'))
+    
+    form = CatForm()
+    
+    # 初始化表单数据
+    if request.method == 'GET':
+        form.name.data = cat['name']
+        form.description.data = cat['description']
+    
+    if form.validate_on_submit():
+        # 处理图片更新
+        filename = cat['image']
+        if form.image.data:
+            # 删除旧图片(如果存在且不是默认图片)
+            if cat['image'] and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], cat['image'])):
+                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], cat['image']))
+            # 保存新图片
+            filename = secure_filename(form.image.data.filename)
+            form.image.data.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        
+        # 更新猫咪信息
+        db.execute(
+            'UPDATE cats SET name = ?, description = ?, image = ? WHERE id = ?',
+            [form.name.data, form.description.data, filename, cat_id]
+        )
+        db.commit()
+        db.close()
+        return redirect(url_for('admin_cats'))
+    
+    db.close()
+    return render_template('edit_cat.html',
+                         form=form,
+                         cat_id=cat_id,
+                         cat=cat)
 
 @app.route('/admin/delete_cat/<int:cat_id>', methods=['POST'])
 @login_required
