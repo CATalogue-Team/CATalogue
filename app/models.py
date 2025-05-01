@@ -1,6 +1,15 @@
 
+from . import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+
+class Cat(db.Model):
+    __tablename__ = 'cats'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    image = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
 
 class User(UserMixin):
     def __init__(self, id, username, password, is_admin=False):
