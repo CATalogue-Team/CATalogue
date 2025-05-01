@@ -32,16 +32,41 @@
 </form>
 
 <script>
-document.getElementById('imageUpload').addEventListener('change', function(event) {
-    const file = event.target.files[0];
-    if (file) {
+// 确保DOM加载完成后执行
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadInput = document.getElementById('imageUpload');
+    
+    // 更健壮的事件监听
+    if (uploadInput) {
+        uploadInput.addEventListener('change', handleImagePreview);
+    }
+
+    function handleImagePreview(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // 验证图片类型
+        const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!validTypes.includes(file.type)) {
+            alert('请选择有效的图片格式 (JPEG, PNG, GIF)');
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById('currentImage').style.display = 'none';
+            const currentImg = document.getElementById('currentImage');
             const preview = document.getElementById('imagePreview');
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-        }
+            
+            if (currentImg) currentImg.style.display = 'none';
+            if (preview) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                preview.alt = '图片预览';
+            }
+        };
+        reader.onerror = function() {
+            console.error('图片读取失败');
+        };
         reader.readAsDataURL(file);
     }
 });

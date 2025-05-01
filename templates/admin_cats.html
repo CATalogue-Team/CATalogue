@@ -17,6 +17,10 @@
                class="btn btn-sm btn-outline-primary">查看</a>
             <a href="{{ url_for('edit_cat', cat_id=cat.id) }}" 
                class="btn btn-sm btn-outline-secondary">编辑</a>
+            <form action="{{ url_for('delete_cat', cat_id=cat.id) }}" method="POST" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger" 
+                        onclick="return confirm('确定要删除这只猫咪吗？')">删除</button>
+            </form>
         </div>
     </div>
     {% endfor %}

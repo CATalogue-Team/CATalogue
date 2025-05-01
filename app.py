@@ -144,9 +144,9 @@ def admin_cats():
     db.close()
     return render_template('admin_cats.html', cats=cats)
 
-@app.route('/admin/edit_cat/<int:cat_id>', methods=['GET', 'POST'])
+@app.route('/admin/delete_cat/<int:cat_id>', methods=['POST'])
 @login_required
-def edit_cat(cat_id):
+def delete_cat(cat_id):
     if not current_user.is_admin:
         return redirect(url_for('home'))
     
@@ -156,42 +156,17 @@ def edit_cat(cat_id):
         [cat_id]
     ).fetchone()
     
-    if not cat:
-        db.close()
-        return redirect(url_for('admin_cats'))
-    
-    form = CatForm()
-    
-    # 初始化表单数据
-    if request.method == 'GET':
-        form.name.data = cat['name']
-        form.description.data = cat['description']
-    
-    if form.validate_on_submit():
-        # 处理图片更新
-        filename = cat['image']
-        if form.image.data:
-            # 删除旧图片(如果存在且不是默认图片)
-            if cat['image'] and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], cat['image'])):
-                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], cat['image']))
-            # 保存新图片
-            filename = secure_filename(form.image.data.filename)
-            form.image.data.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    if cat:
+        # 删除关联的图片文件
+        if cat['image'] and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], cat['image'])):
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], cat['image']))
         
-        # 更新猫咪信息
-        db.execute(
-            'UPDATE cats SET name = ?, description = ?, image = ? WHERE id = ?',
-            [form.name.data, form.description.data, filename, cat_id]
-        )
+        # 从数据库删除记录
+        db.execute('DELETE FROM cats WHERE id = ?', [cat_id])
         db.commit()
-        db.close()
-        return redirect(url_for('admin_cats'))
     
     db.close()
-    return render_template('edit_cat.html',
-                         form=form,
-                         cat_id=cat_id,
-                         cat=cat)
+    return redirect(url_for('admin_cats'))
 
 if __name__ == '__main__':
     with app.app_context():
