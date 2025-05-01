@@ -21,7 +21,7 @@
             {% endif %}
             <h3>{{ cat.name }}</h3>
             <p>{{ cat.description|truncate(100) }}</p>
-            <a href="{{ url_for('cat_detail', cat_id=cats.index(cat)) }}" 
+            <a href="{{ url_for('cat_detail', cat_id=cat.id) }}" 
                class="btn btn-sm btn-outline-primary">查看详情</a>
         </div>
         {% endfor %}
