@@ -13,7 +13,7 @@
         <div class="card-body">
             <h5 class="card-title">猫咪详情</h5>
             <p class="card-text">{{ cat.description }}</p>
-            {% if current_user.is_admin %}
+            {% if is_admin %}
             <a href="{{ url_for('edit_cat', cat_id=cat_id) }}" 
                class="btn btn-primary">编辑</a>
             {% endif %}

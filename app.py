@@ -127,7 +127,8 @@ def cat_detail(cat_id):
         return redirect(url_for('home'))
     return render_template('cat_detail.html', 
                         cat=cat,
-                        cat_id=cat_id)
+                        cat_id=cat_id,
+                        is_admin=current_user.is_admin)
 
 @app.route('/admin/cats')
 @login_required
