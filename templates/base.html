@@ -4,11 +4,11 @@
 <head>
     <meta charset="utf-8">
     <title>猫咪信息网站</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" >
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', _external=True) }}" >
     <!-- 本地Bootstrap CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css', _external=True) }}">
     <!-- 图标库 -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/font/bootstrap-icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/font/bootstrap-icons.css', _external=True) }}">
     <script>
     // 增强资源加载失败处理
     document.addEventListener('DOMContentLoaded', function() {
@@ -35,9 +35,9 @@
     });
     </script>
     <!-- 本地jQuery -->
-    <script src="{{ url_for('static', filename='vendor/jquery/jquery-3.6.0.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/jquery/jquery-3.6.0.min.js', _external=True) }}"></script>
     <!-- 本地Bootstrap JS -->
-    <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js', _external=True) }}"></script>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
