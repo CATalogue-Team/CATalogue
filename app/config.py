@@ -23,4 +23,4 @@ class Config:
     COMPRESS_MIN_SIZE = 500
     MAX_IMAGE_SIZE = 1024 * 1024 * 5  # 5MB
     ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'png', 'jpeg', 'gif']
-    UPLOAD_FOLDER = os.path.join(basedir, 'static/uploads')
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(basedir), 'static/uploads')

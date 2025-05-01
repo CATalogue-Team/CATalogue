@@ -12,7 +12,9 @@ cache = Cache()
 login_manager = LoginManager()
 
 def create_app(config_class=Config):
-    app = Flask(__name__, template_folder='../templates')
+    app = Flask(__name__, 
+              template_folder=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'templates'),
+              static_folder=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static'))
     app.config.from_object(config_class)
     
     # 初始化扩展
@@ -35,6 +37,10 @@ def create_app(config_class=Config):
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
     
+    # 打印静态文件路径信息
+    print(f"静态文件目录: {app.static_folder}")
+    print(f"静态文件URL前缀: {app.static_url_path}")
+    
     # 性能优化中间件
     @app.after_request
     def add_header(response):
@@ -43,11 +49,15 @@ def create_app(config_class=Config):
             response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
             response.headers['Vary'] = 'Accept-Encoding'
             
-            # 为CSS/JS添加内容哈希
-            if request.path.endswith(('.css', '.js')):
-                import hashlib
-                file_hash = hashlib.md5(response.get_data()).hexdigest()[:8]
-                response.headers['ETag'] = f'"{file_hash}"'
+            # 为CSS/JS添加内容哈希(仅当不是passthrough模式时)
+            if request.path.endswith(('.css', '.js')) and not response.is_sequence:
+                try:
+                    import hashlib
+                    file_hash = hashlib.md5(response.get_data()).hexdigest()[:8]
+                    response.headers['ETag'] = f'"{file_hash}"'
+                except RuntimeError:
+                    # 跳过passthrough模式的响应
+                    pass
                 
         # 动态内容短期缓存
         elif request.endpoint in ('main.home', 'cats.detail'):
