@@ -49,7 +49,7 @@ def create_app(config_class=Config):
     
     return app
 
-from app.models import User
+from .models import User
 
 @login_manager.user_loader
 def load_user(user_id):

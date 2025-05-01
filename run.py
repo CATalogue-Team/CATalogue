@@ -1,6 +1,6 @@
 
 from app import create_app, db
-from core.models import Cat, User  # 更新模型导入路径
+from app.models import Cat, User  # 修正模型导入路径
 from flask_migrate import Migrate
 import click
 from flask.cli import with_appcontext
