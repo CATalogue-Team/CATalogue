@@ -105,21 +105,39 @@ def edit_cat(cat_id):
     if not current_user.is_admin:
         return redirect(url_for('home'))
     
-    cat = next((c for c in cats if cats.index(c) == cat_id), None)
-    if not cat:
+    # 确保cat_id在有效范围内
+    if cat_id < 0 or cat_id >= len(cats):
         return redirect(url_for('admin_cats'))
     
-    form = CatForm(obj=cat)
+    cat = cats[cat_id]
+    form = CatForm()
+    
+    # 初始化表单数据
+    if request.method == 'GET':
+        form.name.data = cat['name']
+        form.description.data = cat['description']
+    
     if form.validate_on_submit():
+        # 更新猫咪信息
         cat['name'] = form.name.data
         cat['description'] = form.description.data
+        
+        # 处理图片更新
         if form.image.data:
+            # 删除旧图片(如果存在且不是默认图片)
+            if cat['image'] and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], cat['image'])):
+                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], cat['image']))
+            # 保存新图片
             filename = secure_filename(form.image.data.filename)
             form.image.data.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             cat['image'] = filename
+        
         return redirect(url_for('admin_cats'))
     
-    return render_template('edit_cat.html', form=form, cat_id=cat_id)
+    return render_template('edit_cat.html',
+                         form=form,
+                         cat_id=cat_id,
+                         cat=cat)
 
 if __name__ == '__main__':
     app.run(debug=True)
