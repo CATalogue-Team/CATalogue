@@ -39,7 +39,10 @@ flask run
 
 ### 账号管理命令
 ```bash
-# 创建管理员账号
+# 初始化脚本已包含管理员账号创建
+# 默认管理员账号: admin/admin123
+
+# 创建额外管理员账号
 flask create-admin <username> <password>
 
 # 创建普通用户账号
@@ -119,12 +122,36 @@ flask list-users
   - 领养率分析
   - 数据导出功能
 
+## 数据库配置
+1. 数据库文件默认位置：`instance/cats.db` (开发环境)
+2. 生产环境建议配置：
+```python
+# .env 文件配置示例
+DATABASE_URL=postgresql://user:password@localhost/production_db
+```
+
+## 统一工作区配置
+1. 确保所有开发者使用相同路径结构
+2. 推荐项目根目录结构：
+```
+.
+├── instance/          # 数据库文件(开发环境)
+├── static/            # 静态资源
+└── app/               # 应用代码
+```
+
 ## 快速开始
 ### Favicon配置
 1. 将favicon.ico文件放置在`static/`目录下
 2. 确保base.html模板中包含以下代码：
 ```html
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+```
+
+### 数据库初始化
+1. 使用初始化脚本创建数据库和基础数据：
+```bash
+python init_db.py
 ```
 
 ### 开发环境
