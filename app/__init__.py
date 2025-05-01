@@ -4,6 +4,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from flask_login import LoginManager
 from werkzeug.middleware.proxy_fix import ProxyFix
+from logging.handlers import RotatingFileHandler
+import logging
 from .config import Config
 import os
 
@@ -16,6 +18,30 @@ def create_app(config_class=Config):
               template_folder=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'templates'),
               static_folder=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static'))
     app.config.from_object(config_class)
+    
+    # 重置日志系统
+    app.logger.handlers.clear()
+    
+    # 简单控制台日志配置
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[logging.StreamHandler()]
+    )
+    
+    # 强制测试日志功能
+    logging.debug("=== 基本日志系统测试开始 ===")
+    logging.debug("这是一条DEBUG级别测试日志")
+    logging.info("这是一条INFO级别测试日志")
+    logging.warning("这是一条WARNING级别测试日志")
+    
+    # 添加请求日志中间件
+    @app.before_request
+    def log_request_info():
+        app.logger.debug(f"请求路径: {request.path}")
+        app.logger.debug(f"请求方法: {request.method}")
+        app.logger.debug(f"请求参数: {request.args.to_dict()}")
+        app.logger.debug(f"请求头: {dict(request.headers)}")
     
     # 初始化扩展
     db.init_app(app)

@@ -25,3 +25,6 @@ class Config:
     MAX_IMAGE_SIZE = 1024 * 1024 * 5  # 5MB
     ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'png', 'jpeg', 'gif']
     UPLOAD_FOLDER = os.path.join(os.path.dirname(basedir), 'static/uploads')
+    LOG_LEVEL = 'DEBUG'
+    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    LOG_FILE = os.path.join(os.path.dirname(basedir), 'logs/app.log')

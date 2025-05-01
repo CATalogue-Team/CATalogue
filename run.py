@@ -1,6 +1,7 @@
 
 from app import create_app
 from app.cli.commands import register_cli_commands
+from flask import request
 from flask_migrate import Migrate
 import sys
 import os
@@ -27,6 +28,13 @@ def main():
         # 注册CLI命令
         register_cli_commands(app)
         
+        # 添加路由调试信息
+        @app.before_request
+        def log_request_info():
+            app.logger.debug(f"请求路径: {request.path}")
+            app.logger.debug(f"请求方法: {request.method}")
+            app.logger.debug(f"请求参数: {request.args.to_dict()}")
+        
         return app
         
     except Exception as e:
@@ -35,4 +43,4 @@ def main():
 
 if __name__ == '__main__':
     app = main()
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
