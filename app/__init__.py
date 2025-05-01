@@ -20,7 +20,18 @@ def create_app(config_class=Config):
     # 初始化扩展
     db.init_app(app)
     cache.init_app(app)
-    compress.init_app(app)
+    # 配置更高效的压缩算法
+    compress.init_app(app, {
+        'COMPRESS_ALGORITHM': 'gzip',
+        'COMPRESS_LEVEL': 6,
+        'COMPRESS_MIN_SIZE': 500,
+        'COMPRESS_MIMETYPES': [
+            'text/html',
+            'text/css',
+            'application/javascript',
+            'application/json'
+        ]
+    })
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     
@@ -37,14 +48,32 @@ def create_app(config_class=Config):
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
     
-    # 添加缓存控制头
+    # 性能优化中间件
     @app.after_request
     def add_header(response):
-        if 'Cache-Control' not in response.headers:
-            if request.path.startswith('/static/'):
-                response.headers['Cache-Control'] = 'public, max-age=31536000'
-            else:
-                response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        # 静态资源长期缓存+版本控制
+        if request.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+            response.headers['Vary'] = 'Accept-Encoding'
+            
+            # 为CSS/JS添加内容哈希
+            if request.path.endswith(('.css', '.js')):
+                import hashlib
+                file_hash = hashlib.md5(response.get_data()).hexdigest()[:8]
+                response.headers['ETag'] = f'"{file_hash}"'
+                
+        # 动态内容短期缓存
+        elif request.endpoint in ('main.home', 'cats.detail'):
+            response.headers['Cache-Control'] = 'public, max-age=60'
+            
+        # 敏感内容不缓存
+        else:
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+            
+        # 启用Gzip压缩
+        if 'gzip' in request.headers.get('Accept-Encoding', ''):
+            response.headers['Content-Encoding'] = 'gzip'
+            
         return response
     
     return app
