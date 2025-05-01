@@ -1,0 +1,8 @@
+
+CREATE TABLE IF NOT EXISTS cats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    image TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
