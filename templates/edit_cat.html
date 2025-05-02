@@ -72,34 +72,57 @@
                         </div>
                         
                         <div class="mb-4">
-                            <label for="{{ form.image.id }}" class="form-label">
-                                <i class="bi bi-image"></i> 猫咪照片 (选填)
-                            </label>
-                            {{ form.image(class="form-control", id="imageUpload") }}
-                            <div class="form-text text-muted">
-                                支持 JPG/PNG 格式，大小不超过5MB
-                            </div>
-                            
-                            <div class="image-preview mt-3">
-                                {% if cat and cat.image_url %}
-                                <p class="text-muted"><i class="bi bi-image-fill"></i> 当前图片:</p>
-                                <img id="currentImage" 
-                                     src="{{ cat.image_url }}" 
-                                     width="200" 
-                                     class="img-thumbnail rounded">
-                                {% else %}
-                                <p class="text-muted"><i class="bi bi-image"></i> 暂无图片</p>
-                                <img id="currentImage" 
-                                     style="display:none;" 
-                                     width="200" 
-                                     class="img-thumbnail rounded">
-                                {% endif %}
-                                <img id="imagePreview" 
-                                     style="display:none;" 
-                                     width="200" 
-                                     class="img-thumbnail rounded mt-2">
-                            </div>
+                        <label for="{{ form.images.id }}" class="form-label">
+                            <i class="bi bi-image"></i> 猫咪照片 (可多选)
+                        </label>
+                        {{ form.images(class="form-control", id="imageUpload", multiple="multiple") }}
+                        <div class="form-text text-muted">
+                            支持 JPG/PNG 格式，单张不超过5MB，可上传多张
                         </div>
+                        
+                        <div class="image-preview mt-3">
+                            {% if cat and cat.images %}
+                            <p class="text-muted"><i class="bi bi-image-fill"></i> 当前图片:</p>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                {% for image in cat.images %}
+                                <div class="position-relative">
+                                    <img src="{{ image.url }}" 
+                                         width="200" 
+                                         class="img-thumbnail rounded {% if image.is_primary %}border-primary border-2{% endif %}">
+                                    {% if image.is_primary %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                                        主图
+                                    </span>
+                                    {% endif %}
+                                    <div class="btn-group btn-group-sm position-absolute top-0 end-0 m-1">
+                                        {% if not image.is_primary %}
+                                        <form action="{{ url_for('cats.manage_images', cat_id=cat.id) }}" method="POST">
+                                            <input type="hidden" name="action" value="set_primary">
+                                            <input type="hidden" name="image_id" value="{{ image.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary" 
+                                                    title="设为主图">
+                                                <i class="bi bi-star-fill"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        <form action="{{ url_for('cats.manage_images', cat_id=cat.id) }}" method="POST">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="image_id" value="{{ image.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="return confirm('确定删除这张图片吗？')"
+                                                    title="删除图片">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted"><i class="bi bi-image"></i> 暂无图片</p>
+                            {% endif %}
+                        </div>
+                    </div>
                         
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                             <a href="{{ url_for('cats.detail', id=cat.id) if cat else url_for('cats.cats__list') }}" 
@@ -137,36 +160,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (uploadInput) {
         uploadInput.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+            const files = Array.from(event.target.files);
+            let hasError = false;
             
-            // 验证图片类型和大小
-            const validTypes = ['image/jpeg', 'image/png'];
-            if (!validTypes.includes(file.type)) {
-                showToast('错误', '请选择JPG或PNG格式的图片', 'danger');
-                this.value = '';
-                return;
-            }
-            
-            if (file.size > maxSize) {
-                showToast('错误', '图片大小不能超过5MB', 'danger');
-                this.value = '';
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const currentImg = document.getElementById('currentImage');
-                const preview = document.getElementById('imagePreview');
-                
-                if (currentImg) currentImg.style.display = 'none';
-                if (preview) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    preview.alt = '新图片预览';
+            files.forEach(file => {
+                // 验证图片类型和大小
+                const validTypes = ['image/jpeg', 'image/png'];
+                if (!validTypes.includes(file.type)) {
+                    showToast('错误', `${file.name}: 仅支持JPG/PNG格式`, 'danger');
+                    hasError = true;
+                    return;
                 }
-            };
-            reader.readAsDataURL(file);
+                
+                if (file.size > maxSize) {
+                    showToast('错误', `${file.name}: 大小超过5MB限制`, 'danger');
+                    hasError = true;
+                    return;
+                }
+            });
+            
+            if (hasError) {
+                this.value = '';
+            }
         });
     }
 

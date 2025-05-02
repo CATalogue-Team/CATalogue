@@ -1,10 +1,11 @@
 
-from typing import List, Optional
+from typing import List, Optional, Type
 from ..models import User
 from .base_service import BaseService
 
 class UserService(BaseService):
     """用户服务层"""
+    model = User  # 定义模型类
     
     @staticmethod
     def get_user(user_id: int) -> Optional[User]:

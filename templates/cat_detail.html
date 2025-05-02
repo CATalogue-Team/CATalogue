@@ -20,16 +20,60 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    {% if cat.image %}
-                    <img src="{{ url_for('static', filename='uploads/' + cat.image) }}" 
-                         class="img-fluid rounded mb-4" 
-                         alt="{{ cat.name }}">
+                    {% if cat.images %}
+                    <div id="catCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+                        <div class="carousel-inner rounded">
+                            {% for image in cat.images %}
+                            <div class="carousel-item {% if image.is_primary %}active{% endif %}">
+                                <img src="{{ image.url }}" class="d-block w-100" alt="{{ cat.name }}">
+                                {% if image.is_primary %}
+                                <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded">
+                                    <small>主图</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#catCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">上一张</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#catCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">下一张</span>
+                        </button>
+                    </div>
                     {% endif %}
+                    
                     <div class="mb-4">
                         <h5 class="text-muted">
                             <i class="bi bi-card-text"></i> 猫咪描述
                         </h5>
                         <p class="lead">{{ cat.description }}</p>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="text-muted">
+                                <i class="bi bi-tag"></i> 基本信息
+                            </h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <strong>品种:</strong> {{ cat.breed or '未知' }}
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>年龄:</strong> {{ cat.age or '未知' }}岁
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>状态:</strong> 
+                                    {% if cat.is_adopted %}
+                                    <span class="badge bg-success">已被领养</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">待领养</span>
+                                    {% endif %}
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                     
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">

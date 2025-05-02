@@ -1,6 +1,6 @@
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, FileField, TextAreaField, PasswordField, BooleanField, SelectField, IntegerField
+from wtforms import StringField, FileField, TextAreaField, PasswordField, BooleanField, SelectField, IntegerField, MultipleFileField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length, NumberRange, Optional
 from app.models import User
 
@@ -21,18 +21,23 @@ class CatForm(FlaskForm):
         Length(max=500, message='描述不能超过500字符'),
         Optional()
     ])
-    image = FileField('猫咪图片', validators=[
+    images = MultipleFileField('猫咪图片(可多选)', validators=[
         Optional()
     ])
     is_adopted = BooleanField('已被领养', validators=[
         Optional()
     ])
 
-    def validate_image(self, field):
+    def validate_images(self, field):
         if field.data:
-            filename = field.data.filename.lower()
-            if not (filename.endswith('.jpg') or filename.endswith('.png')):
-                raise ValidationError('仅支持JPG/PNG格式图片')
+            for image in field.data:
+                if not image:
+                    continue
+                filename = image.filename.lower()
+                if not (filename.endswith('.jpg') or filename.endswith('.png')):
+                    raise ValidationError('仅支持JPG/PNG格式图片')
+                if image.content_length > 5 * 1024 * 1024:  # 5MB限制
+                    raise ValidationError('单张图片大小不能超过5MB')
 
 class RegisterForm(FlaskForm):
     username = StringField('用户名', validators=[DataRequired()])

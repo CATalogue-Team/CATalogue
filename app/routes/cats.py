@@ -36,15 +36,12 @@ class CatCRUD:
         if not form.validate():
             return None
             
-        # 处理图片上传
-        image_url = CatCRUD.handle_image(form)
-        
         return {
             'name': form.name.data,
             'breed': form.breed.data,
             'age': form.age.data,
             'description': form.description.data,
-            'image_url': image_url,
+            'is_adopted': form.is_adopted.data,
             'user_id': current_user.id,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
@@ -56,36 +53,83 @@ class CatCRUD:
         if not form.validate():
             return None
             
-        # 处理图片更新
-        image_url = CatCRUD.handle_image(form, item)
-        
         return {
             'name': form.name.data,
             'breed': form.breed.data,
             'age': form.age.data,
             'description': form.description.data,
-            'image_url': image_url,
+            'is_adopted': form.is_adopted.data,
             'updated_at': datetime.utcnow()
         }
     
     @staticmethod
-    def handle_image(form, item=None):
-        """处理图片上传"""
-        if form.image.data:
-            filename = secure_filename(form.image.data.filename)
-            save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            form.image.data.save(save_path)
-            return f'/static/uploads/{filename}'
-        return item.image_url if item else None
-    
-    @staticmethod
     def before_delete(item):
         """删除前的处理"""
-        if item.image_url:
-            image_path = os.path.join(current_app.static_folder, item.image_url.lstrip('/static/'))
-            if os.path.exists(image_path):
-                os.remove(image_path)
-        return True
+        try:
+            # 删除关联图片
+            for image in item.images:
+                image_path = os.path.join(current_app.static_folder, image.url.lstrip('/static/'))
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+                    current_app.logger.info(f"已删除图片文件: {image_path}")
+            
+            # 删除上传目录中的文件
+            upload_folder = current_app.config['UPLOAD_FOLDER']
+            for filename in os.listdir(upload_folder):
+                if filename.startswith(f"cat_{item.id}_"):
+                    file_path = os.path.join(upload_folder, filename)
+                    os.remove(file_path)
+                    current_app.logger.info(f"已删除上传文件: {file_path}")
+            
+            return True
+        except Exception as e:
+            current_app.logger.error(f"删除猫咪资源失败: {str(e)}")
+            raise
+
+# 添加图片管理路由
+@bp.route('/<int:cat_id>/images', methods=['POST'])
+@login_required
+@admin_required
+def manage_images(cat_id):
+    """管理猫咪图片"""
+    cat = CatService.get(cat_id)
+    if not cat:
+        flash('猫咪不存在', 'error')
+        return redirect(url_for('cats.list'))
+    
+    action = request.form.get('action')
+    image_id = request.form.get('image_id')
+    
+    if action == 'set_primary' and image_id:
+        # 设置主图
+        try:
+            image_id = int(image_id)
+            # 重置所有图片为非主图
+            for img in cat.images:
+                img.is_primary = (img.id == image_id)
+            db.session.commit()
+            flash('主图设置成功', 'success')
+        except (ValueError, AttributeError):
+            flash('设置主图失败', 'error')
+            
+    elif action == 'delete' and image_id:
+        # 删除图片
+        try:
+            image_id = int(image_id)
+            image = next((img for img in cat.images if img.id == image_id), None)
+            if image:
+                # 删除文件
+                image_path = os.path.join(current_app.static_folder, image.url.lstrip('/static/'))
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+                # 删除记录
+                db.session.delete(image)
+                db.session.commit()
+                flash('图片删除成功', 'success')
+        except (ValueError, AttributeError):
+            flash('删除图片失败', 'error')
+    
+    return redirect(url_for('cats.edit', id=cat_id))
 
 # 权限控制
 for endpoint in bp.view_functions:

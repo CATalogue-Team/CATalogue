@@ -29,6 +29,18 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f'<User {self.username}>'
 
+class CatImage(db.Model):
+    __tablename__ = 'cat_images'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    url = db.Column(db.String(200), nullable=False)
+    is_primary = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    cat_id = db.Column(db.Integer, db.ForeignKey('cats.id'), nullable=False)
+    
+    def __repr__(self):
+        return f'<CatImage {self.url}>'
+
 class Cat(db.Model):
     __tablename__ = 'cats'
     
@@ -37,11 +49,17 @@ class Cat(db.Model):
     breed = db.Column(db.String(50))
     age = db.Column(db.Integer)
     description = db.Column(db.Text)
-    image_url = db.Column(db.String(200))
     is_adopted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # 关系定义
+    images = db.relationship('CatImage', backref='cat', lazy=True, cascade='all, delete-orphan')
+    
+    @property
+    def primary_image(self):
+        return next((img.url for img in self.images if img.is_primary), None)
     
     def __repr__(self):
         return f'<Cat {self.name}>'

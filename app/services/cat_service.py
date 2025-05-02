@@ -1,8 +1,12 @@
 
-from typing import List, Optional
+from typing import List, Optional, Union, Type
 from datetime import datetime
 from .. import db
-from ..models import Cat, User
+from ..models import Cat, User, CatImage
+from werkzeug.datastructures import FileStorage
+from werkzeug.utils import secure_filename
+import os
+from flask import current_app, url_for
 from .base_service import BaseService
 
 class CatService(BaseService):
@@ -15,7 +19,7 @@ class CatService(BaseService):
         return super().get(cls.model, id)
     
     @classmethod
-    def get_all(cls) -> List[Cat]:
+    def get_all(cls, model: Type[Cat] = None) -> List[Cat]:
         """获取所有猫咪信息"""
         return super().get_all(cls.model)
     
@@ -35,8 +39,8 @@ class CatService(BaseService):
         return Cat.query.order_by(Cat.created_at.desc()).limit(limit).all()
     
     @classmethod
-    def create(cls, **kwargs) -> Cat:
-        """创建猫咪信息"""
+    def create(cls, images: List[FileStorage] = None, **kwargs) -> Cat:
+        """创建猫咪信息(支持多图上传)"""
         if 'user_id' in kwargs and not User.query.get(kwargs['user_id']):
             raise ValueError("用户不存在")
             
@@ -44,13 +48,48 @@ class CatService(BaseService):
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         })
-        return super().create(cls.model, **kwargs)
+        
+        cat = super().create(cls.model, **kwargs)
+        
+        # 处理图片上传
+        if images:
+            cls._handle_images(cat, images)
+            
+        return cat
     
     @classmethod
-    def update(cls, id: int, **kwargs) -> Optional[Cat]:
-        """更新猫咪信息"""
+    def _handle_images(cls, cat: Cat, images: List[FileStorage]) -> None:
+        """处理猫咪图片上传"""
+        for i, image in enumerate(images):
+            if not image:
+                continue
+                
+            filename = secure_filename(image.filename)
+            save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            image.save(save_path)
+            
+            # 第一张图片设为主图
+            is_primary = i == 0
+            image_url = url_for('static', filename=f'uploads/{filename}', _external=False)
+            
+            db.session.add(CatImage(
+                url=image_url,
+                is_primary=is_primary,
+                cat_id=cat.id
+            ))
+        
+        db.session.commit()
+    
+    @classmethod
+    def update(cls, id: int, images: List[FileStorage] = None, **kwargs) -> Optional[Cat]:
+        """更新猫咪信息(支持多图上传)"""
         kwargs['updated_at'] = datetime.utcnow()
-        return super().update(cls.model, id, **kwargs)
+        cat = super().update(cls.model, id, **kwargs)
+        
+        if cat and images:
+            cls._handle_images(cat, images)
+            
+        return cat
     
     @classmethod
     def delete(cls, id: int) -> bool:

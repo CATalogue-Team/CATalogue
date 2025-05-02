@@ -14,7 +14,7 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
             @bp.route(f'/{model_name}', endpoint=f'{name}_{model_name}_list')
             @login_required
             def list():
-                items = service.get_all_cats() if model_name == 'cats' else service.get_all()
+                items = service.get_all_cats() if model_name == 'cats' else service.get_all(service.model)
                 return render_template(list_template, items=items)
             
             # 创建路由
@@ -43,6 +43,9 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
                         
                         from flask import flash
                         flash(f'{model_name.capitalize()}添加成功!', 'success')
+                        from flask_login import current_user
+                        if hasattr(current_user, 'is_admin') and current_user.is_admin:
+                            return redirect(url_for('admin.cats'))
                         return redirect(url_for(f'{name}.{name}_{model_name}_list'))
                     except Exception as e:
                         current_app.logger.error(f'创建{model_name}失败: {str(e)}', exc_info=True)
