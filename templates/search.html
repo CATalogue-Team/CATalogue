@@ -2,29 +2,99 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>猫咪信息查询</h2>
-<form method="GET" action="{{ url_for('main.search') }}">
-    <input type="text" name="q" placeholder="输入猫咪名称或描述">
-    <button type="submit">搜索</button>
-</form>
-{% if is_recommendation and cats %}
-<h3>为您推荐以下猫咪：</h3>
-{% endif %}
-<div class="cats-list">
-    {% if no_results %}
-    <p class="no-results">没有找到匹配的猫咪，请尝试其他关键词。</p>
-    {% elif cats %}
-        {% for cat in cats %}
-        <div class="cat-card">
-            {% if cat.image %}
-            <img src="{{ url_for('static', filename='uploads/' + cat.image) }}" alt="{{ cat.name }}">
-            {% endif %}
-            <h3>{{ cat.name }}</h3>
-            <p>{{ cat.description|truncate(100) }}</p>
-            <a href="{{ url_for('cats.detail', cat_id=cat.id) }}" 
-               class="btn btn-sm btn-outline-primary">查看详情</a>
+<div class="container my-4">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0"><i class="bi bi-search me-2"></i>猫咪搜索</h3>
         </div>
-        {% endfor %}
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('cats.search') }}" class="row g-3">
+                {% set search_params = search_params or {} %}
+                <div class="col-md-6">
+                    <label for="q" class="form-label">关键词</label>
+                    <input type="text" class="form-control" id="q" name="q" 
+                           value="{{ search_params.get('q', '') }}" placeholder="猫咪名称或描述">
+                </div>
+                <div class="col-md-6">
+                    <label for="breed" class="form-label">品种</label>
+                    <input type="text" class="form-control" id="breed" name="breed" 
+                           value="{{ search_params.get('breed', '') }}" placeholder="输入品种">
+                </div>
+                <div class="col-md-4">
+                    <label for="min_age" class="form-label">最小年龄</label>
+                    <input type="number" class="form-control" id="min_age" name="min_age" 
+                           value="{{ search_params.get('min_age', '') }}" min="0" max="30" placeholder="0">
+                </div>
+                <div class="col-md-4">
+                    <label for="max_age" class="form-label">最大年龄</label>
+                    <input type="number" class="form-control" id="max_age" name="max_age" 
+                           value="{{ search_params.get('max_age', '') }}" min="0" max="30" placeholder="30">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">领养状态</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="is_adopted" id="all" 
+                               value="" {% if search_params.get('is_adopted') is none %}checked{% endif %}>
+                        <label class="form-check-label" for="all">全部</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="is_adopted" id="adopted" 
+                               value="true" {% if search_params.get('is_adopted') == true %}checked{% endif %}>
+                        <label class="form-check-label" for="adopted">已领养</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="is_adopted" id="not_adopted" 
+                               value="false" {% if search_params.get('is_adopted') == false %}checked{% endif %}>
+                        <label class="form-check-label" for="not_adopted">待领养</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search me-1"></i>搜索
+                    </button>
+                    <a href="{{ url_for('cats.search') }}" class="btn btn-outline-secondary ms-2">重置</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if cats %}
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h4 class="mb-0"><i class="bi bi-list-ul me-2"></i>搜索结果</h4>
+        </div>
+        <div class="card-body">
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                {% for cat in cats %}
+                <div class="col">
+                    <div class="card h-100">
+                        {% if cat.images %}
+                        <img src="{{ cat.images[0].url }}" class="card-img-top" alt="{{ cat.name }}" style="height: 200px; object-fit: cover;">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ cat.name }}</h5>
+                            <p class="card-text">
+                                <span class="badge bg-info text-dark">{{ cat.breed or '未知品种' }}</span>
+                                <span class="badge bg-{{ 'success' if cat.is_adopted else 'warning' }}">
+                                    {{ '已领养' if cat.is_adopted else '待领养' }}
+                                </span>
+                            </p>
+                            <p class="card-text">{{ cat.description|truncate(100) }}</p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a href="{{ url_for('cats.detail', cat_id=cat.id) }}" 
+                               class="btn btn-sm btn-outline-primary">查看详情</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>没有找到匹配的猫咪，请尝试修改搜索条件。
+    </div>
     {% endif %}
 </div>
 {% endblock %}

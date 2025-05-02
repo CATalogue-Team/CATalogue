@@ -82,14 +82,58 @@ class CatService(BaseService):
     
     @classmethod
     def update(cls, id: int, images: List[FileStorage] = None, **kwargs) -> Optional[Cat]:
-        """更新猫咪信息(支持多图上传)"""
-        kwargs['updated_at'] = datetime.utcnow()
-        cat = super().update(cls.model, id, **kwargs)
-        
-        if cat and images:
-            cls._handle_images(cat, images)
+        """
+        更新猫咪信息(支持多图上传)
+        改进点：
+        1. 完整事务管理
+        2. 合并图片处理
+        3. 增强错误处理
+        """
+        try:
+            cat = cls.model.query.get(id)
+            if not cat:
+                return None
+                
+            # 开始事务
+            db.session.begin_nested()
             
-        return cat
+            # 更新基础信息
+            for key, value in kwargs.items():
+                if hasattr(cat, key):
+                    setattr(cat, key, value)
+            cat.updated_at = datetime.utcnow()
+            
+            # 处理图片上传
+            if images:
+                # 先删除旧图片
+                for image in cat.images:
+                    image_path = os.path.join(current_app.static_folder, image.url.lstrip('/static/'))
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                    db.session.delete(image)
+                
+                # 添加新图片
+                for i, image in enumerate(images):
+                    if not image:
+                        continue
+                        
+                    filename = secure_filename(image.filename)
+                    save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+                    image.save(save_path)
+                    
+                    db.session.add(CatImage(
+                        url=url_for('static', filename=f'uploads/{filename}', _external=False),
+                        is_primary=(i == 0),
+                        cat_id=cat.id
+                    ))
+            
+            db.session.commit()
+            return cat
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"更新猫咪失败: {str(e)}")
+            raise
     
     @classmethod
     def delete(cls, id: int) -> bool:
@@ -113,11 +157,53 @@ class CatService(BaseService):
         return cls.delete(cat_id)
     
     @staticmethod
+    def search_cats(keyword: str = None, breed: str = None, 
+                   min_age: int = None, max_age: int = None,
+                   is_adopted: bool = None) -> List[Cat]:
+        """
+        宽搜索猫咪信息
+        参数:
+            keyword: 搜索关键词(名称或描述)
+            breed: 品种筛选
+            min_age: 最小年龄
+            max_age: 最大年龄
+            is_adopted: 领养状态
+        返回:
+            匹配的猫咪列表
+        """
+        query = Cat.query
+        
+        # 关键词搜索(名称或描述)
+        if keyword:
+            query = query.filter(
+                db.or_(
+                    Cat.name.ilike(f'%{keyword}%'),
+                    Cat.description.ilike(f'%{keyword}%')
+                )
+            )
+        
+        # 品种筛选
+        if breed:
+            query = query.filter(Cat.breed.ilike(f'%{breed}%'))
+            
+        # 年龄范围
+        if min_age is not None:
+            query = query.filter(Cat.age >= min_age)
+        if max_age is not None:
+            query = query.filter(Cat.age <= max_age)
+            
+        # 领养状态
+        if is_adopted is not None:
+            query = query.filter(Cat.is_adopted == is_adopted)
+            
+        return query.order_by(Cat.updated_at.desc()).all()
+        
+    @staticmethod
     def get_cats_by_breed(breed: str) -> List[Cat]:
-        """按品种筛选猫咪"""
-        return Cat.query.filter_by(breed=breed).all()
+        """按品种筛选猫咪(兼容旧接口)"""
+        return CatService.search_cats(breed=breed)
         
     @staticmethod
     def get_adoptable_cats() -> List[Cat]:
-        """获取可领养的猫咪"""
-        return Cat.query.filter_by(is_adopted=False).all()
+        """获取可领养的猫咪(兼容旧接口)"""
+        return CatService.search_cats(is_adopted=False)

@@ -12,6 +12,30 @@ from .base_crud import crud_blueprint
 
 bp, crud_route = crud_blueprint('cats', __name__, url_prefix='/cat')
 
+# 猫咪搜索页
+@bp.route('/search')
+@login_required
+def search():
+    search_params = {
+        'q': request.args.get('q', ''),
+        'breed': request.args.get('breed', ''),
+        'min_age': request.args.get('min_age', type=int),
+        'max_age': request.args.get('max_age', type=int),
+        'is_adopted': request.args.get('is_adopted', type=lambda x: x == 'true')
+    }
+    
+    cats = CatService.search_cats(
+        keyword=search_params['q'],
+        breed=search_params['breed'],
+        min_age=search_params['min_age'],
+        max_age=search_params['max_age'],
+        is_adopted=search_params['is_adopted']
+    )
+    
+    return render_template('search.html', 
+                         cats=cats,
+                         search_params=search_params)
+
 # 猫咪详情页
 @bp.route('/<int:cat_id>')
 @login_required
@@ -53,14 +77,26 @@ class CatCRUD:
         if not form.validate():
             return None
             
-        return {
-            'name': form.name.data,
-            'breed': form.breed.data,
-            'age': form.age.data,
-            'description': form.description.data,
-            'is_adopted': form.is_adopted.data,
-            'updated_at': datetime.utcnow()
-        }
+        try:
+            # 获取上传的图片文件
+            images = []
+            if form.images.data:
+                images = form.images.data if isinstance(form.images.data, list) else [form.images.data]
+            
+            # 直接调用Service层更新
+            return CatService.update_cat(
+                item.id,
+                images=images,
+                name=form.name.data,
+                breed=form.breed.data,
+                age=form.age.data,
+                description=form.description.data,
+                is_adopted=form.is_adopted.data
+            )
+        except Exception as e:
+            current_app.logger.error(f"更新猫咪失败: {str(e)}")
+            flash('更新猫咪信息失败', 'error')
+            return None
     
     @staticmethod
     def before_delete(item):
