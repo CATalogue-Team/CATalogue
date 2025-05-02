@@ -57,3 +57,8 @@ class UserManagementForm(FlaskForm):
 class UserForm(FlaskForm):
     username = StringField('用户名', validators=[DataRequired()])
     is_admin = BooleanField('管理员权限')
+
+class LoginForm(FlaskForm):
+    username = StringField('用户名', validators=[DataRequired()])
+    password = PasswordField('密码', validators=[DataRequired()])
+    remember = BooleanField('记住我')

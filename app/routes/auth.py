@@ -8,17 +8,36 @@ bp = Blueprint('auth', __name__)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = UserService.get_user_by_username(username)
-        if user and user.check_password(password):
+    from flask import current_app
+    from ..forms import LoginForm
+    form = LoginForm()
+    current_app.logger.debug(f"登录表单验证状态: {form.validate_on_submit()}")
+    current_app.logger.debug(f"表单错误: {form.errors}")
+    
+    if form.validate_on_submit():
+        current_app.logger.debug("表单验证通过")
+        user = UserService.get_user_by_username(form.username.data)
+        current_app.logger.debug(f"找到用户: {user is not None}")
+        
+        if user and user.check_password(form.password.data):
+            current_app.logger.debug("密码验证通过")
             if user.status != 'approved':
+                current_app.logger.warning(f"用户未审核: {user.username}")
                 flash('您的账号尚未通过审核', 'warning')
                 return redirect(url_for('auth.login'))
-            login_user(user)
+            
+            current_app.logger.info(f"用户登录成功: {user.username}")
+            login_user(user, remember=form.remember.data)
             return redirect(url_for('main.home'))
-    return render_template('login.html')
+        
+        if not user:
+            current_app.logger.warning(f"用户名不存在: {form.username.data}")
+            flash('用户名不存在', 'danger')
+        else:
+            current_app.logger.warning(f"密码错误: {form.username.data}")
+            flash('密码错误', 'danger')
+    
+    return render_template('login.html', form=form)
 
 @bp.route('/logout')
 @login_required

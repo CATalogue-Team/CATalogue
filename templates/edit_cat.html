@@ -1,4 +1,7 @@
 
+{% extends "base.html" %}
+
+{% block content %}
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -39,10 +42,10 @@
                             </div>
                             
                             <div class="image-preview mt-3">
-                                {% if cat['image'] %}
+                                {% if cat and cat.image_url %}
                                 <p class="text-muted"><i class="bi bi-image-fill"></i> 当前图片:</p>
                                 <img id="currentImage" 
-                                     src="{{ url_for('static', filename='uploads/' + cat['image']) }}" 
+                                     src="{{ cat.image_url }}" 
                                      width="200" 
                                      class="img-thumbnail rounded">
                                 {% else %}
@@ -60,7 +63,7 @@
                         </div>
                         
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                            <a href="{{ url_for('cats.detail', cat_id=cat_id) }}" 
+                            <a href="{{ url_for('main.home') }}" 
                                class="btn btn-outline-secondary me-md-2">
                                 <i class="bi bi-x-circle"></i> 取消
                             </a>
