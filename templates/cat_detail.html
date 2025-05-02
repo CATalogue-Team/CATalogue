@@ -12,7 +12,7 @@
                             <i class="bi bi-heart-fill me-2"></i>{{ cat.name }}
                         </h3>
                         {% if is_admin %}
-                        <a href="{{ url_for('cats.edit', cat_id=cat_id) }}" 
+                        <a href="{{ url_for('cats.cats__edit', id=cat.id) }}" 
                            class="btn btn-sm btn-light">
                             <i class="bi bi-pencil-square"></i> 编辑
                         </a>

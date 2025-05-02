@@ -24,8 +24,8 @@
                 <td>{{ "管理员" if user.is_admin else "普通用户" }}</td>
                 <td>{{ user.status }}</td>
                 <td>
-                    <a href="{{ url_for('admin.users_edit', id=user.id) }}" class="btn btn-sm btn-primary">编辑</a>
-                    <form action="{{ url_for('admin.users_delete', id=user.id) }}" method="post" style="display:inline;">
+                    <a href="{{ url_for('admin.admin_users_edit', id=user.id) }}" class="btn btn-sm btn-primary">编辑</a>
+                    <form action="{{ url_for('admin.admin_users_delete', id=user.id) }}" method="post" style="display:inline;">
                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('确定删除此用户吗？')">删除</button>
                     </form>
                 </td>

@@ -1,5 +1,5 @@
 
-from flask import Blueprint, render_template, redirect, url_for, request
+from flask import Blueprint, render_template, redirect, url_for, request, current_app
 from flask_login import login_required
 from functools import wraps
 
@@ -11,42 +11,86 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
         """装饰器：为CRUD操作添加路由"""
         def decorator(cls):
             # 列表路由
-            @bp.route(f'/{model_name}', endpoint=f'{model_name}_list')
+            @bp.route(f'/{model_name}', endpoint=f'{name}_{model_name}_list')
             @login_required
             def list():
-                items = service.get_all_users() if model_name == 'users' else service.get_all_cats()
+                items = service.get_all_cats() if model_name == 'cats' else service.get_all()
                 return render_template(list_template, items=items)
             
             # 创建路由
-            @bp.route(f'/{model_name}/create', methods=['GET', 'POST'], endpoint=f'{model_name}_create')
+            @bp.route(f'/{model_name}/create', methods=['GET', 'POST'], endpoint=f'{name}_{model_name}_create')
             @login_required
             def create():
                 form = form_class()
                 if form.validate_on_submit():
-                    service.create_user(**form.data) if model_name == 'users' else service.create_cat(**form.data)
-                    return redirect(url_for(f'{name}.{model_name}_list'))
+                    try:
+                        # 处理图片上传
+                        image_url = None
+                        if hasattr(cls, 'handle_image'):
+                            image_url = cls.handle_image(form)
+                        
+                        # 创建记录
+                        data = {k:v for k,v in form.data.items() if k not in ['csrf_token', 'submit', 'image']}
+                        if image_url:
+                            data['image_url'] = image_url
+                        if hasattr(service, 'create_cat'):
+                            from flask_login import current_user
+                            service.create_cat(current_user.id, **data)
+                        elif hasattr(service, 'model'):
+                            service.create(service.model, **data)
+                        else:
+                            service.create(**data)
+                        
+                        from flask import flash
+                        flash(f'{model_name.capitalize()}添加成功!', 'success')
+                        return redirect(url_for(f'{name}.{name}_{model_name}_list'))
+                    except Exception as e:
+                        current_app.logger.error(f'创建{model_name}失败: {str(e)}', exc_info=True)
+                        from flask import flash
+                        flash(f'添加失败: {str(e)}', 'danger')
+                elif request.method == 'POST':
+                    current_app.logger.warning(f'表单验证失败: {form.errors}')
+                    from flask import flash
+                    for field, errors in form.errors.items():
+                        for error in errors:
+                            flash(f'{getattr(form, field).label.text}: {error}', 'danger')
                 return render_template(edit_template, form=form)
             
             # 编辑路由
-            @bp.route(f'/{model_name}/edit/<int:id>', methods=['GET', 'POST'], endpoint=f'{model_name}_edit')
+            @bp.route(f'/{model_name}/edit/<int:id>', methods=['GET', 'POST'], endpoint=f'{name}_{model_name}_edit')
             @login_required
             def edit(id):
-                item = service.get_user(id) if model_name == 'users' else service.get_cat(id)
+                item = service.get(id)
                 if not item:
-                    return redirect(url_for(f'{name}.{model_name}_list'))
+                    from flask import flash
+                    flash('记录不存在', 'danger')
+                    return redirect(url_for(f'{name}.{name}_{model_name}_list'))
                 
                 form = form_class(obj=item)
                 if form.validate_on_submit():
-                    service.update_user(id, **form.data) if model_name == 'users' else service.update_cat(id, **form.data)
-                    return redirect(url_for(f'{name}.{model_name}_list'))
+                    try:
+                        service.update(id, **form.data)
+                        from flask import flash
+                        flash(f'{model_name.capitalize()}更新成功!', 'success')
+                        return redirect(url_for(f'{name}.{name}_{model_name}_list'))
+                    except Exception as e:
+                        current_app.logger.error(f'更新{model_name}失败: {str(e)}', exc_info=True)
+                        from flask import flash
+                        flash(f'更新失败: {str(e)}', 'danger')
+                elif request.method == 'POST':
+                    current_app.logger.warning(f'表单验证失败: {form.errors}')
+                    from flask import flash
+                    for field, errors in form.errors.items():
+                        for error in errors:
+                            flash(f'{getattr(form, field).label.text}: {error}', 'danger')
                 return render_template(edit_template, form=form, item=item)
             
             # 删除路由
-            @bp.route(f'/{model_name}/delete/<int:id>', methods=['POST'], endpoint=f'{model_name}_delete')
+            @bp.route(f'/{model_name}/delete/<int:id>', methods=['POST'], endpoint=f'{name}_{model_name}_delete')
             @login_required
             def delete(id):
-                service.delete_user(id) if model_name == 'users' else service.delete_cat(id)
-                return redirect(url_for(f'{name}.{model_name}_list'))
+                service.delete(id)
+                return redirect(url_for(f'{name}.{name}_{model_name}_list'))
             
             return cls
         return decorator

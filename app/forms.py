@@ -1,25 +1,32 @@
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, FileField, TextAreaField, PasswordField, BooleanField, SelectField, IntegerField
-from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length, NumberRange
+from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length, NumberRange, Optional
 from app.models import User
 
 class CatForm(FlaskForm):
     name = StringField('猫咪名字', validators=[
-        DataRequired(),
+        DataRequired(message='猫咪名字是必填项'),
         Length(min=2, max=100, message='名字长度需在2-100字符之间')
     ])
     breed = StringField('品种', validators=[
-        Length(max=50, message='品种长度不能超过50字符')
+        Length(max=50, message='品种长度不能超过50字符'),
+        Optional()
     ])
     age = IntegerField('年龄', validators=[
-        NumberRange(min=0, max=30, message='年龄需在0-30之间')
+        NumberRange(min=0, max=30, message='年龄需在0-30之间'),
+        Optional()
     ])
     description = TextAreaField('描述', validators=[
-        Length(max=500, message='描述不能超过500字符')
+        Length(max=500, message='描述不能超过500字符'),
+        Optional()
     ])
-    image = FileField('猫咪图片')
-    is_adopted = BooleanField('已被领养')
+    image = FileField('猫咪图片', validators=[
+        Optional()
+    ])
+    is_adopted = BooleanField('已被领养', validators=[
+        Optional()
+    ])
 
     def validate_image(self, field):
         if field.data:
