@@ -131,7 +131,7 @@ def manage_images(cat_id):
     cat = CatService.get(cat_id)
     if not cat:
         flash('猫咪不存在', 'error')
-        return redirect(url_for('cats.list'))
+            return redirect(url_for('cats.admin_cats_list'))
     
     action = request.form.get('action')
     image_id = request.form.get('image_id')
@@ -165,7 +165,7 @@ def manage_images(cat_id):
         except (ValueError, AttributeError):
             flash('删除图片失败', 'error')
     
-    return redirect(url_for('cats.edit', id=cat_id))
+        return redirect(url_for('cats.admin_cats_edit', id=cat_id))
 
 # 权限控制
 for endpoint in bp.view_functions:

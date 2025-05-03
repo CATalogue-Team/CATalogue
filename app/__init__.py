@@ -38,10 +38,18 @@ def create_app(config_class=Config):
     # 添加请求日志中间件
     @app.before_request
     def log_request_info():
-        app.logger.debug(f"请求路径: {request.path}")
-        app.logger.debug(f"请求方法: {request.method}")
+        app.logger.info(f"请求开始: {request.method} {request.path}")
         app.logger.debug(f"请求参数: {request.args.to_dict()}")
         app.logger.debug(f"请求头: {dict(request.headers)}")
+        
+    @app.after_request
+    def log_response_info(response):
+        duration = time.time() - getattr(request, 'start_time', time.time())
+        app.logger.info(
+            f"请求完成: {request.method} {request.path} "
+            f"状态码:{response.status_code} 耗时:{duration:.3f}s"
+        )
+        return response
     
     # 初始化扩展
     db.init_app(app)
@@ -62,6 +70,29 @@ def create_app(config_class=Config):
     app.register_blueprint(cats.bp)
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
+    
+    # 生产环境路由监控
+    if not app.debug and not app.testing:
+        from prometheus_client import Counter, generate_latest
+        REQUEST_COUNT = Counter(
+            'http_requests_total',
+            'HTTP Requests Total',
+            ['method', 'endpoint', 'status']
+        )
+        
+        @app.after_request
+        def monitor_requests(response):
+            if hasattr(request, 'endpoint'):
+                REQUEST_COUNT.labels(
+                    method=request.method,
+                    endpoint=request.endpoint,
+                    status=response.status_code
+                ).inc()
+            return response
+            
+        @app.route('/metrics')
+        def metrics():
+            return generate_latest()
     
     # 性能优化中间件
     @app.after_request
