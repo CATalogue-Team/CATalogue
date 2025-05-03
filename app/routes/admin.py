@@ -9,15 +9,18 @@ from ..forms import CatForm, UserForm
 from ..decorators import admin_required
 from .base_crud import crud_blueprint
 
-# 创建管理员蓝图
+# 创建管理员蓝图（显式设置名称空间）
 bp, crud_route = crud_blueprint('admin', __name__, url_prefix='/admin')
+bp.name = 'admin'  # 显式设置蓝图名称
+bp.static_folder = 'static'  # 单独设置静态文件夹
+bp.static_url_path = '/admin/static'  # 单独设置静态URL路径
 
-@bp.route('/')
+@bp.route('/', endpoint='admin_home')
 @login_required
 @admin_required
 def admin_home():
     """后台管理首页"""
-    return redirect(url_for('admin.users'))
+    return redirect(url_for('admin_users_list'))
 
 # 猫咪管理CRUD
 @crud_route('cats', CatService, CatForm, 'admin_cats.html', 'edit_cat.html')

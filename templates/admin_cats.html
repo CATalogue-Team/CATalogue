@@ -5,7 +5,7 @@
 
 {% block admin_toolbar %}
 <div class="btn-group me-2">
-    <a href="{{ url_for('admin.cats_create') }}" class="btn btn-sm btn-primary">
+    <a href="{{ url_for('admin.admin_cats_create') }}" class="btn btn-sm btn-primary">
         <i class="bi bi-plus-circle"></i> 添加猫咪
     </a>
 </div>
@@ -47,11 +47,11 @@
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm">
-                        <a href="{{ url_for('admin.cats_edit', id=cat.id) }}" 
+                        <a href="{{ url_for('admin.admin_cats_edit', id=cat.id) }}" 
                            class="btn btn-outline-primary" title="编辑">
                             <i class="bi bi-pencil"></i>
                         </a>
-                        <form action="{{ url_for('admin.cats_delete', id=cat.id) }}" method="POST">
+                        <form action="{{ url_for('admin.admin_cats_delete', id=cat.id) }}" method="POST">
                             <button type="submit" class="btn btn-outline-danger" 
                                     onclick="return confirm('确定要删除这只猫咪吗？')" title="删除">
                                 <i class="bi bi-trash"></i>
@@ -69,17 +69,17 @@
 <nav aria-label="Page navigation">
     <ul class="pagination justify-content-center">
         <li class="page-item {% if not cats.has_prev %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('admin.cats', page=cats.prev_num) }}">
+            <a class="page-link" href="{{ url_for('admin.admin_cats_list', page=cats.prev_num) }}">
                 &laquo; 上一页
             </a>
         </li>
         {% for p in cats.iter_pages() %}
             <li class="page-item {% if p == cats.page %}active{% endif %}">
-                <a class="page-link" href="{{ url_for('admin.cats', page=p) }}">{{ p or '...' }}</a>
+                <a class="page-link" href="{{ url_for('admin.admin_cats_list', page=p) }}">{{ p or '...' }}</a>
             </li>
         {% endfor %}
         <li class="page-item {% if not cats.has_next %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('admin.cats', page=cats.next_num) }}">
+            <a class="page-link" href="{{ url_for('admin.admin_cats_list', page=cats.next_num) }}">
                 下一页 &raquo;
             </a>
         </li>

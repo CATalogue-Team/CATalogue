@@ -22,3 +22,15 @@ def search():
 def ping():
     """测试路由"""
     return jsonify({'status': 'ok', 'message': 'pong'})
+
+@bp.route('/test_pagination')
+def test_pagination():
+    """测试分页配置"""
+    from flask import current_app
+    page_size = current_app.config.get('ITEMS_PER_PAGE', 10)
+    pagination = CatService.get_paginated_cats(page=1)
+    return jsonify({
+        'config_page_size': page_size,
+        'actual_page_size': len(pagination.items),
+        'total_pages': pagination.pages
+    })

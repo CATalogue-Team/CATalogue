@@ -33,6 +33,15 @@ class CatService(BaseService):
         """获取所有猫咪信息(按更新时间排序)"""
         return cls.model.query.order_by(Cat.updated_at.desc()).all()
         
+    @classmethod
+    def get_paginated_cats(cls, page=1, per_page=10, **filters) -> 'flask_sqlalchemy.Pagination':
+        """分页获取猫咪信息"""
+        query = cls.model.query.order_by(Cat.updated_at.desc())
+        for key, value in filters.items():
+            if hasattr(cls.model, key):
+                query = query.filter(getattr(cls.model, key) == value)
+        return query.paginate(page=page, per_page=per_page, error_out=False)
+        
     @staticmethod
     def get_recent_cats(limit: int = 3) -> List[Cat]:
         """获取最近添加的猫咪(包含品种筛选)"""

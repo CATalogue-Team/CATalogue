@@ -11,14 +11,16 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
         """装饰器：为CRUD操作添加路由"""
         def decorator(cls):
             # 列表路由
-            @bp.route(f'/{model_name}', endpoint=f'{name}_{model_name}_list')
+            @bp.route(f'/{model_name}', endpoint=f'admin_{model_name}_list')
             @login_required
             def list():
-                items = service.get_all_cats() if model_name == 'cats' else service.get_all(service.model)
-                return render_template(list_template, items=items)
+                page = request.args.get('page', 1, type=int)
+                per_page = current_app.config.get('ITEMS_PER_PAGE', 10)
+                cats = service.get_paginated_cats(page=page, per_page=per_page) if model_name == 'cats' else service.get_paginated(page=page, per_page=per_page)
+                return render_template(list_template, cats=cats)
             
             # 创建路由
-            @bp.route(f'/{model_name}/create', methods=['GET', 'POST'], endpoint=f'{name}_{model_name}_create')
+            @bp.route(f'/{model_name}/create', methods=['GET', 'POST'], endpoint=f'admin_{model_name}_create')
             @login_required
             def create():
                 form = form_class()
@@ -46,7 +48,7 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
                         from flask_login import current_user
                         if hasattr(current_user, 'is_admin') and current_user.is_admin:
                             return redirect(url_for('admin.cats'))
-                        return redirect(url_for(f'{name}.{name}_{model_name}_list'))
+                        return redirect(url_for(f'admin_{model_name}_list'))
                     except Exception as e:
                         current_app.logger.error(f'创建{model_name}失败: {str(e)}', exc_info=True)
                         from flask import flash
@@ -60,14 +62,14 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
                 return render_template(edit_template, form=form)
             
             # 编辑路由
-            @bp.route(f'/{model_name}/edit/<int:id>', methods=['GET', 'POST'], endpoint=f'{name}_{model_name}_edit')
+            @bp.route(f'/{model_name}/edit/<int:id>', methods=['GET', 'POST'], endpoint=f'admin_{model_name}_edit')
             @login_required
             def edit(id):
                 item = service.get(id)
                 if not item:
                     from flask import flash
                     flash('记录不存在', 'danger')
-                    return redirect(url_for(f'{name}.{name}_{model_name}_list'))
+                    return redirect(url_for(f'admin_{model_name}_list'))
                 
                 form = form_class(obj=item)
                 if form.validate_on_submit():
@@ -75,7 +77,7 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
                         service.update(id, **form.data)
                         from flask import flash
                         flash(f'{model_name.capitalize()}更新成功!', 'success')
-                        return redirect(url_for(f'{name}.{name}_{model_name}_list'))
+                        return redirect(url_for(f'admin_{model_name}_list'))
                     except Exception as e:
                         current_app.logger.error(f'更新{model_name}失败: {str(e)}', exc_info=True)
                         from flask import flash
@@ -89,11 +91,11 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
                 return render_template(edit_template, form=form, item=item)
             
             # 删除路由
-            @bp.route(f'/{model_name}/delete/<int:id>', methods=['POST'], endpoint=f'{name}_{model_name}_delete')
+            @bp.route(f'/{model_name}/delete/<int:id>', methods=['POST'], endpoint=f'admin_{model_name}_delete')
             @login_required
             def delete(id):
                 service.delete(id)
-                return redirect(url_for(f'{name}.{name}_{model_name}_list'))
+                return redirect(url_for(f'admin_{model_name}_list'))
             
             return cls
         return decorator
