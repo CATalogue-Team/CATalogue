@@ -1,6 +1,7 @@
 
-from flask import Blueprint, render_template, redirect, url_for, request, flash
+from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
+from .. import db
 from ..services.user_service import UserService
 from ..forms import RegisterForm, AdminApproveForm, UserManagementForm
 
@@ -8,7 +9,6 @@ bp = Blueprint('auth', __name__)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
-    from flask import current_app
     from ..forms import LoginForm
     form = LoginForm()
     current_app.logger.debug(f"登录表单验证状态: {form.validate_on_submit()}")
@@ -49,13 +49,25 @@ def logout():
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
-        UserService.create_user(
-            username=form.username.data,
-            password=form.password.data,
-            is_admin=form.is_admin.data
-        )
-        flash('注册成功，请等待管理员审核', 'success')
-        return redirect(url_for('auth.login'))
+        try:
+            UserService.create_user(
+                password=form.password.data,
+                username=form.username.data,
+                is_admin=form.is_admin.data,
+                status='pending'
+            )
+            flash('注册成功，请等待管理员审核', 'success')
+            return redirect(url_for('auth.login'))
+        except ValueError as e:
+            flash(f'注册失败: {str(e)}', 'danger')
+            current_app.logger.error(f"用户注册失败: {str(e)}")
+        except Exception as e:
+            flash(f'注册过程中发生错误: {str(e)}', 'danger')
+            current_app.logger.error(f"用户注册异常: {str(e)}")
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f"{getattr(form, field).label.text}错误: {error}", 'danger')
     return render_template('register.html', form=form)
 
 @bp.route('/admin/approvals', methods=['GET', 'POST'])

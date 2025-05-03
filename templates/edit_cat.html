@@ -72,57 +72,52 @@
                         </div>
                         
                         <div class="mb-4">
-                        <label for="{{ form.images.id }}" class="form-label">
-                            <i class="bi bi-image"></i> 猫咪照片 (可多选)
-                        </label>
-                        {{ form.images(class="form-control", id="imageUpload", multiple="multiple") }}
-                        <div class="form-text text-muted">
-                            支持 JPG/PNG 格式，单张不超过5MB，可上传多张
-                        </div>
-                        
-                        <div class="image-preview mt-3">
-                            {% if cat and cat.images %}
-                            <p class="text-muted"><i class="bi bi-image-fill"></i> 当前图片:</p>
-                            <div class="d-flex flex-wrap gap-2 mb-3">
-                                {% for image in cat.images %}
-                                <div class="position-relative">
-                                    <img src="{{ image.url }}" 
-                                         width="200" 
-                                         class="img-thumbnail rounded {% if image.is_primary %}border-primary border-2{% endif %}">
-                                    {% if image.is_primary %}
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
-                                        主图
-                                    </span>
-                                    {% endif %}
-                                    <div class="btn-group btn-group-sm position-absolute top-0 end-0 m-1">
-                                        {% if not image.is_primary %}
-                                        <form action="{{ url_for('cats.manage_images', cat_id=cat.id) }}" method="POST">
-                                            <input type="hidden" name="action" value="set_primary">
-                                            <input type="hidden" name="image_id" value="{{ image.id }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-primary" 
+                            <label for="{{ form.images.id }}" class="form-label">
+                                <i class="bi bi-image"></i> 猫咪照片 (可多选)
+                            </label>
+                            <div class="dropzone border rounded p-3 text-center" id="imageDropzone">
+                                <div class="dz-message needsclick">
+                                    <i class="bi bi-cloud-arrow-up fs-1"></i>
+                                    <h5>拖拽图片到此处或点击选择</h5>
+                                    <span class="text-muted">支持JPG/PNG格式，单张不超过5MB</span>
+                                </div>
+                                {{ form.images(class="form-control d-none", id="imageUpload", multiple="multiple") }}
+                            </div>
+                            
+                            <div class="image-preview mt-3">
+                                {% if cat and cat.images %}
+                                <p class="text-muted"><i class="bi bi-image-fill"></i> 当前图片:</p>
+                                <div class="d-flex flex-wrap gap-2 mb-3" id="existingImages">
+                                    {% for image in cat.images %}
+                                    <div class="position-relative image-thumbnail" data-image-id="{{ image.id }}">
+                                        <img src="{{ image.url }}" 
+                                             width="200" 
+                                             class="img-thumbnail rounded {% if image.is_primary %}border-primary border-2{% endif %}">
+                                        {% if image.is_primary %}
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                                            主图
+                                        </span>
+                                        {% endif %}
+                                        <div class="btn-group btn-group-sm position-absolute top-0 end-0 m-1">
+                                            {% if not image.is_primary %}
+                                            <button type="button" class="btn btn-sm btn-outline-primary set-primary-btn"
                                                     title="设为主图">
                                                 <i class="bi bi-star-fill"></i>
                                             </button>
-                                        </form>
-                                        {% endif %}
-                                        <form action="{{ url_for('cats.manage_images', cat_id=cat.id) }}" method="POST">
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="image_id" value="{{ image.id }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" 
-                                                    onclick="return confirm('确定删除这张图片吗？')"
+                                            {% endif %}
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
                                                     title="删除图片">
                                                 <i class="bi bi-trash-fill"></i>
                                             </button>
-                                        </form>
+                                        </div>
                                     </div>
+                                    {% endfor %}
                                 </div>
-                                {% endfor %}
+                                {% else %}
+                                <p class="text-muted"><i class="bi bi-image"></i> 暂无图片</p>
+                                {% endif %}
                             </div>
-                            {% else %}
-                            <p class="text-muted"><i class="bi bi-image"></i> 暂无图片</p>
-                            {% endif %}
                         </div>
-                    </div>
                         
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                             <a href="{{ url_for('cats.detail', id=cat.id) if cat else url_for('cats.cats__list') }}" 
@@ -142,26 +137,133 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 表单验证
+    // 拖拽上传功能
+    const dropzone = document.getElementById('imageDropzone');
+    const uploadInput = document.getElementById('imageUpload');
+    
+    if (dropzone) {
+        // 高亮拖拽区域
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-primary', 'bg-light');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-primary', 'bg-light');
+            });
+        });
+
+        // 处理文件拖放
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadInput.files = files;
+                uploadInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // 点击触发文件选择
+        dropzone.addEventListener('click', () => {
+            uploadInput.click();
+        });
+    }
+
+    // 图片操作处理
+    document.querySelectorAll('.set-primary-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const imageId = this.closest('.image-thumbnail').dataset.imageId;
+            fetch(`/cat/${cat.id}/images`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=set_primary&image_id=${imageId}`
+            }).then(response => {
+                if (response.ok) {
+                    location.reload();
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('确定删除这张图片吗？')) {
+                const imageId = this.closest('.image-thumbnail').dataset.imageId;
+                fetch(`/cat/${cat.id}/images`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=delete&image_id=${imageId}`
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    }
+                });
+            }
+        });
+    });
+
+    // 防止重复提交
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
+        let isSubmitting = false;
+        
         form.addEventListener('submit', function(event) {
+            // 表单验证
             if (!form.checkValidity()) {
                 event.preventDefault();
                 event.stopPropagation();
+                form.classList.add('was-validated');
+                return;
             }
-            form.classList.add('was-validated');
+            
+            // 防止重复提交
+            if (isSubmitting) {
+                event.preventDefault();
+                return;
+            }
+            
+            isSubmitting = true;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 保存中...';
+            }
         }, false);
     });
 
-    // 图片上传处理
+    // 图片上传增强
     const uploadInput = document.getElementById('imageUpload');
     const maxSize = 5 * 1024 * 1024; // 5MB
+    const previewContainer = document.querySelector('.image-preview');
     
     if (uploadInput) {
+        // 实时预览
         uploadInput.addEventListener('change', function(event) {
             const files = Array.from(event.target.files);
             let hasError = false;
+            
+            // 清空之前的预览
+            const existingPreviews = previewContainer.querySelectorAll('.upload-preview');
+            existingPreviews.forEach(preview => preview.remove());
+            
+            if (files.length > 0) {
+                const previewTitle = document.createElement('p');
+                previewTitle.className = 'text-muted mt-3';
+                previewTitle.innerHTML = '<i class="bi bi-image me-1"></i>新上传的图片:';
+                previewContainer.appendChild(previewTitle);
+                
+                const previewRow = document.createElement('div');
+                previewRow.className = 'd-flex flex-wrap gap-2 mb-3 upload-preview';
+                previewContainer.appendChild(previewRow);
+            }
             
             files.forEach(file => {
                 // 验证图片类型和大小
@@ -177,12 +279,81 @@ document.addEventListener('DOMContentLoaded', function() {
                     hasError = true;
                     return;
                 }
+                
+                // 显示预览
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.createElement('div');
+                    preview.className = 'position-relative upload-preview';
+                    preview.innerHTML = `
+                        <img src="${e.target.result}" 
+                             width="200" 
+                             class="img-thumbnail rounded">
+                        <button type="button" class="btn btn-sm btn-outline-danger position-absolute top-0 end-0 m-1 remove-preview"
+                                title="移除图片">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    `;
+                    preview.querySelector('.remove-preview').addEventListener('click', function() {
+                        preview.remove();
+                        // 从FileList中移除对应的文件
+                        const newFiles = Array.from(uploadInput.files).filter(f => f !== file);
+                        const dataTransfer = new DataTransfer();
+                        newFiles.forEach(f => dataTransfer.items.add(f));
+                        uploadInput.files = dataTransfer.files;
+                        
+                        if (newFiles.length === 0) {
+                            document.querySelectorAll('.upload-preview').forEach(el => el.remove());
+                        }
+                    });
+                    previewRow.appendChild(preview);
+                };
+                reader.readAsDataURL(file);
             });
             
             if (hasError) {
                 this.value = '';
             }
         });
+    }
+    
+    // 自动保存草稿
+    let saveTimer;
+    const form = document.querySelector('form');
+    if (form) {
+        const inputs = form.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(() => {
+                    const formData = new FormData(form);
+                    // 移除文件数据避免过大
+                    formData.delete('images');
+                    localStorage.setItem('cat_edit_draft', JSON.stringify(Object.fromEntries(formData)));
+                    showToast('提示', '已自动保存草稿', 'info');
+                }, 2000);
+            });
+        });
+        
+        // 加载草稿
+        const draft = localStorage.getItem('cat_edit_draft');
+        if (draft) {
+            try {
+                const data = JSON.parse(draft);
+                for (const key in data) {
+                    const input = form.querySelector(`[name="${key}"]`);
+                    if (input) {
+                        input.value = data[key];
+                        if (input.type === 'checkbox' || input.type === 'radio') {
+                            input.checked = data[key] === 'true';
+                        }
+                    }
+                }
+                showToast('提示', '已恢复上次编辑的草稿', 'info');
+            } catch (e) {
+                console.error('加载草稿失败:', e);
+            }
+        }
     }
 
     function showToast(title, message, type) {

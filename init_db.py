@@ -75,7 +75,6 @@ def init_admin_account():
         logger.info("正在创建管理员账号...")
         admin = User(
             username='admin',
-            email='admin@example.com',
             is_admin=True,
             status='approved'
         )

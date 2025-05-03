@@ -8,14 +8,23 @@
     <div class="form-group">
         {{ form.username.label }}
         {{ form.username(class="form-control") }}
+        {% for error in form.username.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
     </div>
     <div class="form-group">
         {{ form.password.label }}
         {{ form.password(class="form-control") }}
+        {% for error in form.password.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
     </div>
     <div class="form-group">
         {{ form.password_confirm.label }}
         {{ form.password_confirm(class="form-control") }}
+        {% for error in form.password_confirm.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
     </div>
     <div class="form-group form-check">
         {{ form.is_admin(class="form-check-input") }}

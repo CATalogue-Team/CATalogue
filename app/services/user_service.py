@@ -1,5 +1,6 @@
 
 from typing import List, Optional, Type
+from .. import db
 from ..models import User
 from .base_service import BaseService
 
@@ -28,9 +29,21 @@ class UserService(BaseService):
         return User.query.all()
     
     @staticmethod
-    def create_user(**kwargs) -> User:
-        """创建用户账号"""
-        return BaseService.create(User, **kwargs)
+    def create_user(password: str, **kwargs) -> User:
+        """
+        创建用户账号
+        参数:
+            password: 明文密码
+            **kwargs: 其他用户属性
+        """
+        if 'password' in kwargs:
+            raise ValueError("请使用password参数而不是kwargs传递密码")
+            
+        user = User(**kwargs)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        return user
     
     @staticmethod
     def approve_user(user_id: int, approved_by: int) -> bool:
