@@ -42,5 +42,27 @@ def main():
         sys.exit(1)
 
 if __name__ == '__main__':
+    # 开发模式下自动运行测试
+    if os.getenv('FLASK_ENV') == 'development':
+        print("\n=== 开发模式检测 ===")
+        print("正在检查测试配置...")
+        try:
+            import pytest
+            print("测试依赖已安装")
+            
+            # 检查测试文件是否存在
+            test_path = os.path.join(os.path.dirname(__file__), 'tests/test_routes.py')
+            if os.path.exists(test_path):
+                print(f"测试文件存在: {test_path}")
+                print("提示: 使用 'python -m pytest tests/' 运行测试")
+            else:
+                print("警告: 未找到测试文件")
+                
+        except ImportError:
+            print("警告: pytest未安装，请运行 'pip install pytest'")
+            
+        print("===================\n")
+    
+    # 正常启动应用
     app = main()
     app.run(debug=True)

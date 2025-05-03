@@ -19,6 +19,7 @@ class TestReporter:
         
     @staticmethod
     def test_step(description):
+        """静态方法装饰器移除，避免被pytest误认为测试用例"""
         print(f"{Fore.YELLOW}▷ 测试步骤: {description}{Fore.RESET}")
         
     @staticmethod

@@ -29,3 +29,5 @@ class Config:
     LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     LOG_FILE = os.path.join(os.path.dirname(basedir), 'logs/app.log')
     ITEMS_PER_PAGE = 10  # 默认每页显示数量
+    FLASK_ENV = 'development'
+    FLASK_DEBUG = True
