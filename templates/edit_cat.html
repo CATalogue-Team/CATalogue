@@ -124,7 +124,7 @@
                                class="btn btn-outline-secondary me-md-2">
                                 <i class="bi bi-x-circle"></i> 取消
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
                                 <i class="bi bi-save"></i> 保存更改
                             </button>
                         </div>
@@ -139,7 +139,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // 拖拽上传功能
     const dropzone = document.getElementById('imageDropzone');
-    const uploadInput = document.getElementById('imageUpload');
+    const imageUploadInput = document.getElementById('imageUpload');
     
     if (dropzone) {
         // 高亮拖拽区域
@@ -162,14 +162,14 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                uploadInput.files = files;
-                uploadInput.dispatchEvent(new Event('change'));
+                imageUploadInput.files = files;
+                imageUploadInput.dispatchEvent(new Event('change'));
             }
         });
 
         // 点击触发文件选择
         dropzone.addEventListener('click', () => {
-            uploadInput.click();
+            imageUploadInput.click();
         });
     }
 
@@ -240,13 +240,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // 图片上传增强
-    const uploadInput = document.getElementById('imageUpload');
     const maxSize = 5 * 1024 * 1024; // 5MB
     const previewContainer = document.querySelector('.image-preview');
     
-    if (uploadInput) {
+    if (imageUploadInput) {
         // 实时预览
-        uploadInput.addEventListener('change', function(event) {
+        imageUploadInput.addEventListener('change', function(event) {
             const files = Array.from(event.target.files);
             let hasError = false;
             
@@ -297,10 +296,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     preview.querySelector('.remove-preview').addEventListener('click', function() {
                         preview.remove();
                         // 从FileList中移除对应的文件
-                        const newFiles = Array.from(uploadInput.files).filter(f => f !== file);
+                        const newFiles = Array.from(imageUploadInput.files).filter(f => f !== file);
                         const dataTransfer = new DataTransfer();
                         newFiles.forEach(f => dataTransfer.items.add(f));
-                        uploadInput.files = dataTransfer.files;
+                        imageUploadInput.files = dataTransfer.files;
                         
                         if (newFiles.length === 0) {
                             document.querySelectorAll('.upload-preview').forEach(el => el.remove());
@@ -355,6 +354,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+
+    // 表单提交调试
+    document.getElementById('submitBtn').addEventListener('click', function() {
+        const debugFormData = new FormData(document.querySelector('form'));
+        console.log('表单数据:', debugFormData);
+        for (let [key, value] of debugFormData.entries()) {
+            console.log(key, value);
+        }
+    });
 
     function showToast(title, message, type) {
         const toast = document.createElement('div');

@@ -3,6 +3,7 @@ from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from flask_login import LoginManager
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from logging.handlers import RotatingFileHandler
 import logging
@@ -13,6 +14,7 @@ import os
 db = SQLAlchemy()
 cache = Cache()
 login_manager = LoginManager()
+csrf = CSRFProtect()
 
 def create_app(config_class=Config):
     app = Flask(__name__, 
@@ -57,6 +59,7 @@ def create_app(config_class=Config):
     app.db = db  # 使db实例可通过app访问
     cache.init_app(app)
     login_manager.init_app(app)
+    csrf.init_app(app)
     login_manager.login_view = 'auth.login'
     
     # 代理设置
