@@ -12,6 +12,13 @@ from .base_crud import crud_blueprint
 # 创建管理员蓝图
 bp, crud_route = crud_blueprint('admin', __name__, url_prefix='/admin')
 
+@bp.route('/')
+@login_required
+@admin_required
+def admin_home():
+    """后台管理首页"""
+    return redirect(url_for('admin.users'))
+
 # 猫咪管理CRUD
 @crud_route('cats', CatService, CatForm, 'admin_cats.html', 'edit_cat.html')
 class CatCRUD:
