@@ -5,6 +5,7 @@ from flask import request
 from flask_migrate import Migrate
 import sys
 import os
+import logging
 
 def main():
     try:
@@ -15,6 +16,19 @@ def main():
         app = create_app()
         app.root_path = project_root
         migrate = Migrate(app, app.db)
+        
+        # 配置日志系统
+        if not app.debug:
+            from logging.handlers import RotatingFileHandler
+            file_handler = RotatingFileHandler(
+                app.config['LOG_FILE'],
+                maxBytes=10240,
+                backupCount=10
+            )
+            file_handler.setFormatter(logging.Formatter(app.config['LOG_FORMAT']))
+            file_handler.setLevel(app.config['LOG_LEVEL'])
+            app.logger.addHandler(file_handler)
+            app.logger.info('已配置生产环境日志系统')
         
         # 添加静态文件路由调试
         @app.route('/favicon.ico')
@@ -63,6 +77,9 @@ if __name__ == '__main__':
             
         print("===================\n")
     
-    # 正常启动应用
+    # 正常启动应用(使用config中的调试设置)
     app = main()
-    app.run(debug=True)
+    app.run(
+        debug=app.config['FLASK_DEBUG'],
+        use_reloader=app.config['FLASK_ENV'] == 'development'
+    )

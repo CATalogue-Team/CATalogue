@@ -120,7 +120,7 @@
                         </div>
                         
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                            <a href="{{ url_for('cats.detail', id=cat.id) if cat else url_for('cats.admin_cats_list') }}" 
+                            <a href="{{ url_for('cats.detail', id=cat.id) if cat else url_for('cats.admin__list') }}" 
                                class="btn btn-outline-secondary me-md-2">
                                 <i class="bi bi-x-circle"></i> 取消
                             </a>
