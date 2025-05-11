@@ -60,6 +60,11 @@ def create_app(config_class=Config):
     cache.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+    
+    # 初始化健康检查
+    from app.core.health_check import EnvironmentChecker
+    health_checker = EnvironmentChecker(app)
+    health_checker.register_cli_commands()
     login_manager.login_view = 'auth.login'
     
     # 代理设置

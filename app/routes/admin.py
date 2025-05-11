@@ -1,94 +1,72 @@
 
-from flask import Blueprint, render_template, redirect, url_for, request, current_app
-from flask_login import login_required
+from flask import Blueprint, jsonify, request, current_app
+from flask_login import login_required, current_user
+import logging
 import os
-from werkzeug.utils import secure_filename
-from ..services.cat_service import CatService
-from ..services.user_service import UserService
-from ..forms import CatForm, UserForm
-from ..decorators import admin_required, prevent_self_operation
-from .base_crud import crud_blueprint
+from pathlib import Path
 
-# 创建管理员蓝图（显式设置名称空间）
-bp, crud_route = crud_blueprint('admin', __name__, url_prefix='/admin')
-bp.name = 'admin'  # 显式设置蓝图名称
-bp.static_folder = 'static'  # 单独设置静态文件夹
-bp.static_url_path = '/admin/static'  # 单独设置静态URL路径
+bp = Blueprint('admin', __name__, url_prefix='/admin')
 
-@bp.route('/', endpoint='admin_home')
+# ... 其他路由 ...
+
+@bp.route('/logs', methods=['GET'])
 @login_required
-@admin_required
-def admin_home():
-    """后台管理首页"""
-    return redirect(url_for('admin.UserCRUD_list'))
+def get_logs():
+    """获取日志文件列表"""
+    if not current_user.is_admin:
+        return jsonify({'error': '无权访问'}), 403
+    
+    log_dir = Path(current_app.config['LOG_FILE']).parent
+    logs = []
+    for f in log_dir.glob('*.log*'):
+        logs.append({
+            'name': f.name,
+            'size': f.stat().st_size,
+            'modified': f.stat().st_mtime
+        })
+    return jsonify({'logs': sorted(logs, key=lambda x: x['modified'], reverse=True)})
 
-# 猫咪管理CRUD
-@crud_route('cats', CatService, CatForm, 'admin_cats.html', 'edit_cat.html')
-class CatCRUD:
-    """猫咪管理CRUD扩展"""
+@bp.route('/logs/<filename>', methods=['GET'])
+@login_required
+def view_log(filename):
+    """查看日志文件内容"""
+    if not current_user.is_admin:
+        return jsonify({'error': '无权访问'}), 403
     
-    @staticmethod
-    def handle_image(form, item=None):
-        """处理多图片上传"""
-        if form.images.data and any(form.images.data):
-            # 直接返回有效的FileStorage对象
-            return [img for img in form.images.data if img]
-        return []
+    log_file = Path(current_app.config['LOG_FILE']).parent / filename
+    if not log_file.exists() or not log_file.is_file():
+        return jsonify({'error': '日志文件不存在'}), 404
     
-    @staticmethod
-    def before_delete(item):
-        """删除前的处理"""
-        if item.images:
-            for image in item.images:
-                if os.path.exists(os.path.join(current_app.config['UPLOAD_FOLDER'], image.url)):
-                    os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], image.url))
+    try:
+        with open(log_file, 'r') as f:
+            content = f.read()
+        return jsonify({
+            'filename': filename,
+            'content': content
+        })
+    except Exception as e:
+        current_app.logger.error(f"读取日志文件失败: {str(e)}")
+        return jsonify({'error': '读取日志失败'}), 500
 
-# 用户管理CRUD
-@crud_route('users', UserService, UserForm, 'admin_users.html', 'edit_user.html')
-class UserCRUD:
-    """用户管理CRUD扩展"""
+@bp.route('/logs/level', methods=['PUT'])
+@login_required
+def set_log_level():
+    """动态设置日志级别"""
+    if not current_user.is_admin:
+        return jsonify({'error': '无权访问'}), 403
     
-    @staticmethod
-    def before_update(id, **data):
-        """更新前的处理"""
-        return {'is_admin': data['is_admin']}  # 只更新is_admin字段
+    level = request.json.get('level')
+    if level not in ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'):
+        return jsonify({'error': '无效的日志级别'}), 400
     
-    @bp.route('/users/approve/<int:id>', methods=['POST'], endpoint='admin_users_approve')
-    @login_required
-    @admin_required
-    @prevent_self_operation
-    def approve(id):
-        """批准用户"""
-        from flask import jsonify, flash
-        from flask_login import current_user
-        try:
-            if not UserService.approve_user(id, current_user.id):
-                flash('用户不存在或审批失败', 'danger')
-                return jsonify({'error': '用户不存在或审批失败'}), 404
-            flash('用户审批成功', 'success')
-            return jsonify({'success': True})
-        except Exception as e:
-            flash(f'审批失败: {str(e)}', 'danger')
-            return jsonify({'error': str(e)}), 500
+    # 更新所有日志处理器级别
+    for handler in current_app.logger.handlers:
+        handler.setLevel(level)
     
-    @bp.route('/users/reject/<int:id>', methods=['POST'], endpoint='admin_users_reject')
-    @login_required
-    @admin_required
-    @prevent_self_operation
-    def reject(id):
-        """拒绝用户"""
-        from flask import jsonify, flash
-        from flask_login import current_user
-        try:
-            if not UserService.reject_user(id):
-                flash('用户不存在或拒绝失败', 'danger')
-                return jsonify({'error': '用户不存在或拒绝失败'}), 404
-            flash('用户已拒绝', 'success')
-            return jsonify({'success': True})
-        except Exception as e:
-            flash(f'拒绝失败: {str(e)}', 'danger')
-            return jsonify({'error': str(e)}), 500
+    # 更新根日志级别
+    logging.getLogger().setLevel(level)
+    current_app.logger.setLevel(level)
+    
+    current_app.logger.info(f"日志级别已更新为: {level}")
+    return jsonify({'message': f'日志级别已设置为{level}'})
 
-# 应用管理员权限装饰器
-for endpoint in bp.view_functions:
-    bp.view_functions[endpoint] = login_required(admin_required(bp.view_functions[endpoint]))

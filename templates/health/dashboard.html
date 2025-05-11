@@ -1,0 +1,104 @@
+
+{% extends "base.html" %}
+
+{% block title %}健康检查面板{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>系统健康检查面板</h2>
+    
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">总体状态</h5>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-success" 
+                             style="width: {{ stats.pass_rate }}%">
+                            {{ "%.1f"|format(stats.pass_rate) }}%
+                        </div>
+                    </div>
+                    <p class="card-text">
+                        最近7天共 {{ stats.total_checks }} 次检查
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">常见问题</h5>
+                    <ul class="list-group">
+                        {% for issue, data in stats.common_issues.items() %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ issue.replace('_', ' ') }}
+                            <span class="badge bg-{{ 'danger' if data.fail_rate > 20 else 'warning' }} rounded-pill">
+                                {{ "%.1f"|format(data.fail_rate) }}%
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>详细检查记录</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>环境</th>
+                            <th>状态</th>
+                            <th>详情</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for check in checks %}
+                        <tr>
+                            <td>{{ check.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ check.environment }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if all(check.results.values()) else 'danger' }}">
+                                    {{ '通过' if all(check.results.values()) else '失败' }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#details-{{ loop.index }}">
+                                    查看详情
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="collapse" id="details-{{ loop.index }}">
+                            <td colspan="4">
+                                <table class="table table-sm">
+                                    {% for item, passed in check.results.items() %}
+                                    <tr>
+                                        <td>{{ item.replace('_', ' ') }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if passed else 'danger' }}">
+                                                {{ '通过' if passed else '失败' }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </table>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

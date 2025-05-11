@@ -1,0 +1,80 @@
+
+{# 通用列表表格组件 #}
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                {% for header in headers %}
+                <th>{{ header }}</th>
+                {% endfor %}
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                {% for field in fields %}
+                <td>
+                    {% if field == 'status' %}
+                        <span class="badge bg-{{ 'success' if item[field] == 'approved' else 'warning' if item[field] == 'pending' else 'danger' }}">
+                            {{ '已通过' if item[field] == 'approved' else '待审核' if item[field] == 'pending' else '已拒绝' }}
+                        </span>
+                    {% elif field == 'is_admin' %}
+                        <span class="badge bg-{{ 'primary' if item[field] else 'secondary' }}">
+                            {{ '管理员' if item[field] else '普通用户' }}
+                        </span>
+                    {% elif field == 'is_adopted' %}
+                        <span class="badge bg-{{ 'success' if item[field] else 'warning' }}">
+                            {{ '已领养' if item[field] else '待领养' }}
+                        </span>
+                    {% elif field == 'images' and item[field] %}
+                        <img src="{{ url_for('static', filename='uploads/' + item[field][0].url) }}" 
+                             class="img-thumbnail" style="max-width: 80px;" alt="{{ item.name }}">
+                    {% elif field == 'created_at' %}
+                        {{ item[field].strftime('%Y-%m-%d %H:%M') if item[field] else '-' }}
+                    {% else %}
+                        {{ item[field] or '-' }}
+                    {% endif %}
+                </td>
+                {% endfor %}
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        {% if edit_url %}
+                        <a href="{{ url_for(edit_url, id=item.id) }}" 
+                           class="btn btn-outline-primary" title="编辑">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% endif %}
+                        {% if delete_url %}
+                        <form action="{{ url_for(delete_url, id=item.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-outline-danger" 
+                                    onclick="return confirm('确定要删除吗？')" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% if approve_url and item.status == 'pending' %}
+                        <form action="{{ url_for(approve_url, id=item.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-outline-success" title="通过">
+                                <i class="bi bi-check-circle"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% if reject_url and item.status == 'pending' %}
+                        <form action="{{ url_for(reject_url, id=item.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-outline-danger" 
+                                    onclick="return confirm('确定要拒绝吗？')" title="拒绝">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

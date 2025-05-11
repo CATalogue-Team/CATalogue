@@ -28,35 +28,46 @@ def setup_upload_folder(app):
         upload_folder.mkdir(parents=True, exist_ok=True)
         logger.info(f"创建上传文件夹: {upload_folder}")
 
-def init_database():
-    """初始化数据库和基础数据"""
+def init_database(admin_username='admin', admin_password='admin123', skip_samples=False):
+    """
+    初始化数据库和基础数据
+    
+    :param admin_username: 管理员用户名
+    :param admin_password: 管理员密码
+    :param skip_samples: 是否跳过示例数据
+    """
     app = create_app()
     
     with app.app_context():
         try:
             logger.info("开始数据库初始化流程...")
-            # 显示数据库配置信息
-            db_uri = app.config['SQLALCHEMY_DATABASE_URI']
-            logger.info(f"数据库位置: {db_uri.split('///')[-1]}")
             
-            # 1. 创建所有表
-            logger.info("正在创建数据库表...")
-            db.create_all()
-            logger.info("数据库表创建完成")
+            # 环境检查
+            if not check_environment(app):
+                raise RuntimeError("环境检查失败")
             
-            # 2. 设置上传文件夹
-            setup_upload_folder(app)
+            # 显示关键配置信息
+            logger.info(f"数据库位置: {app.config['SQLALCHEMY_DATABASE_URI'].split('///')[-1]}")
+            logger.info(f"上传文件夹: {app.config['UPLOAD_FOLDER']}")
             
-            # 3. 初始化管理员账户
-            init_admin_account()
-            
-            # 4. 初始化示例数据
-            init_sample_data(app)
+            # 使用事务确保原子性
+            with db.session.begin_nested():
+                # 1. 创建所有表
+                logger.info("正在创建数据库表...")
+                db.create_all()
+                logger.info("数据库表创建完成")
+                
+                # 2. 设置上传文件夹
+                setup_upload_folder(app)
+                
+                # 3. 初始化管理员账户
+                init_admin_account(admin_username, admin_password)
+                
+                # 4. 初始化示例数据(可选)
+                if not skip_samples:
+                    init_sample_data(app)
             
             logger.info("数据库初始化完成")
-            logger.info(f"数据库文件位置: {app.config['SQLALCHEMY_DATABASE_URI'].split('///')[-1]}")
-            
-            # 打印初始化结果
             logger.info(f"用户总数: {User.query.count()}")
             logger.info(f"猫咪总数: {Cat.query.count()}")
             logger.info(f"猫咪图片总数: {CatImage.query.count()}")
@@ -66,8 +77,29 @@ def init_database():
             logger.exception(e)
             raise
         finally:
-            # 确保数据库会话关闭
             db.session.remove()
+
+def check_environment(app):
+    """检查运行环境是否满足要求"""
+    try:
+        # 检查数据库连接
+        db.session.execute('SELECT 1')
+        logger.info("数据库连接测试成功")
+        
+        # 检查上传目录权限
+        test_file = Path(app.config['UPLOAD_FOLDER']) / '.permission_test'
+        try:
+            test_file.touch()
+            test_file.unlink()
+            logger.info("上传目录权限检查通过")
+        except Exception as e:
+            logger.error(f"上传目录权限不足: {str(e)}")
+            return False
+            
+        return True
+    except Exception as e:
+        logger.error(f"环境检查失败: {str(e)}")
+        return False
 
 def init_admin_account():
     """初始化管理员账户"""

@@ -1,0 +1,23 @@
+
+{# 分页组件宏 #}
+{% macro pagination(paginated_obj, endpoint) %}
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if not paginated_obj.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for(endpoint, page=paginated_obj.prev_num) }}">
+                &laquo; 上一页
+            </a>
+        </li>
+        {% for p in paginated_obj.iter_pages() %}
+            <li class="page-item {% if p == paginated_obj.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for(endpoint, page=p) }}">{{ p or '...' }}</a>
+            </li>
+        {% endfor %}
+        <li class="page-item {% if not paginated_obj.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for(endpoint, page=paginated_obj.next_num) }}">
+                下一页 &raquo;
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endmacro %}

@@ -74,14 +74,47 @@ flask create-admin admin securePassword123!
 
 ### 2. 使用初始化脚本 (首次部署/重置数据)
 ```bash
-# 执行初始化脚本(会创建表、管理员账号和示例数据)
+# 基本初始化(使用默认管理员账号)
 python init_db.py
 
-# 参数说明
-# -- 自动创建数据库表
-# -- 创建默认管理员(admin/admin123)
-# -- 生成5只示例猫咪数据
-# -- 每只猫关联3张示例图片
+# 自定义管理员账号
+python init_db.py --username myadmin --password MySecurePass123
+
+# 跳过示例数据初始化
+python init_db.py --skip-samples
+
+# 参数说明:
+# --username: 管理员用户名(默认:admin)
+# --password: 管理员密码(默认:admin123)
+# --skip-samples: 跳过示例数据初始化
+```
+
+## 📜 日志管理
+
+### 查看日志
+```bash
+# 查看日志文件列表
+curl -H "Authorization: Bearer <token>" http://localhost:5000/admin/logs
+
+# 查看具体日志文件内容
+curl -H "Authorization: Bearer <token>" http://localhost:5000/admin/logs/app.log
+```
+
+### 动态调整日志级别
+```bash
+# 设置日志级别(DEBUG/INFO/WARNING/ERROR/CRITICAL)
+curl -X PUT -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <token>" \
+     -d '{"level":"DEBUG"}' \
+     http://localhost:5000/admin/logs/level
+```
+
+### 日志配置
+```ini
+# .env 日志相关配置
+LOG_LEVEL=INFO  # 日志级别
+LOG_FILE=logs/app.log  # 日志文件路径
+LOG_FORMAT='%(asctime)s - %(name)s - %(levelname)s - %(message)s'  # 日志格式
 ```
 
 ### 环境差异

@@ -74,14 +74,47 @@ flask create-admin admin securePassword123!
 
 ### 2. Using Initialization Script (First deployment/reset)
 ```bash
-# Run initialization script (creates tables, admin account and sample data)
+# Basic initialization (with default admin account)
 python init_db.py
 
-# Features:
-# - Automatically creates database tables
-# - Creates default admin (admin/admin123)
-# - Generates 5 sample cat records
-# - Each cat has 3 associated images
+# Custom admin account
+python init_db.py --username myadmin --password MySecurePass123
+
+# Skip sample data
+python init_db.py --skip-samples
+
+# Parameters:
+# --username: Admin username (default:admin)
+# --password: Admin password (default:admin123)
+# --skip-samples: Skip sample data initialization
+```
+
+## 📜 Log Management
+
+### View Logs
+```bash
+# List log files
+curl -H "Authorization: Bearer <token>" http://localhost:5000/admin/logs
+
+# View log content
+curl -H "Authorization: Bearer <token>" http://localhost:5000/admin/logs/app.log
+```
+
+### Adjust Log Level
+```bash
+# Set log level (DEBUG/INFO/WARNING/ERROR/CRITICAL)
+curl -X PUT -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <token>" \
+     -d '{"level":"DEBUG"}' \
+     http://localhost:5000/admin/logs/level
+```
+
+### Log Configuration
+```ini
+# .env log settings
+LOG_LEVEL=INFO  # Log level
+LOG_FILE=logs/app.log  # Log file path
+LOG_FORMAT='%(asctime)s - %(name)s - %(levelname)s - %(message)s'  # Log format
 ```
 
 ### Environment Differences
