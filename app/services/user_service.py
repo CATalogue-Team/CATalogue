@@ -6,6 +6,9 @@ from .base_service import BaseService
 
 class UserService(BaseService):
     """用户服务层"""
+    def __init__(self, db):
+        super().__init__(db)
+        
     model = User  # 定义模型类
     
     @staticmethod

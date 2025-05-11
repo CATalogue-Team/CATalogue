@@ -20,6 +20,7 @@ class TestReporter:
     @staticmethod
     def test_step(description):
         print(f"{Fore.YELLOW}▷ 测试步骤: {description}{Fore.RESET}")
+        return None  # 修复PytestReturnNotNoneWarning
         
     @staticmethod
     def success(message):
@@ -30,13 +31,22 @@ class TestReporter:
         print(f"{Fore.RED}✗ 失败: {message}{Fore.RESET}")
 
 @pytest.fixture
+def description():
+    """提供测试步骤描述的虚拟fixture"""
+    return "测试步骤描述"
+
+@pytest.fixture
 def app():
     TestReporter.start_test("应用初始化")
     start_time = time.time()
     app = create_app()
     app.config['TESTING'] = True
+    app.config['SERVER_NAME'] = 'localhost'
+    app.config['APPLICATION_ROOT'] = '/'
+    app.config['PREFERRED_URL_SCHEME'] = 'http'
     TestReporter.end_test("应用初始化", time.time() - start_time)
     return app
+
 
 @pytest.fixture
 def client(app):

@@ -2,7 +2,14 @@
 Flask==2.3.2
 Flask-Login==0.6.2
 Flask-SQLAlchemy==3.0.3
+Flask-Migrate==4.1.0
 Flask-Caching==2.0.2
 Flask-Compress==1.13
 Werkzeug==2.3.7
 WTForms==3.0.1
+Flask-WTF==1.2.2
+APScheduler==3.10.1
+pytest==8.3.5
+pytest-cov==4.1.0
+colorama==0.4.6
+python-dotenv==1.0.0

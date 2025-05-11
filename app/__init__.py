@@ -80,6 +80,19 @@ def create_app(config_class=Config):
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
     
+    # 初始化服务(带日志记录)
+    app.logger.info("正在初始化服务...")
+    try:
+        with app.app_context():
+            from app.services.cat_service import CatService
+            from app.services.user_service import UserService
+            app.cat_service = CatService(db)
+            app.user_service = UserService(db)
+            app.logger.info("服务初始化成功")
+    except Exception as e:
+        app.logger.error(f"服务初始化失败: {str(e)}")
+        raise
+    
     # 在蓝图注册后导入装饰器
     from .decorators import prevent_self_operation
     

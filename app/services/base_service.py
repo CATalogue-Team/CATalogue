@@ -6,6 +6,8 @@ T = TypeVar('T', bound=db.Model)
 
 class BaseService:
     """基础服务类"""
+    def __init__(self, db=None):
+        self.db = db
     
     @staticmethod
     def get(model: Type[T], id: int) -> Optional[T]:

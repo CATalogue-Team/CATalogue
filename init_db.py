@@ -83,7 +83,8 @@ def check_environment(app):
     """检查运行环境是否满足要求"""
     try:
         # 检查数据库连接
-        db.session.execute('SELECT 1')
+        from sqlalchemy import text
+        db.session.execute(text('SELECT 1'))
         logger.info("数据库连接测试成功")
         
         # 检查上传目录权限
@@ -101,19 +102,23 @@ def check_environment(app):
         logger.error(f"环境检查失败: {str(e)}")
         return False
 
-def init_admin_account():
-    """初始化管理员账户"""
-    if not User.query.filter_by(username='admin').first():
-        logger.info("正在创建管理员账号...")
+def init_admin_account(admin_username='admin', admin_password='admin123'):
+    """初始化管理员账户
+    
+    :param admin_username: 管理员用户名
+    :param admin_password: 管理员密码
+    """
+    if not User.query.filter_by(username=admin_username).first():
+        logger.info(f"正在创建管理员账号: {admin_username}")
         admin = User(
-            username='admin',
+            username=admin_username,
             is_admin=True,
             status='approved'
         )
-        admin.set_password('admin123')
+        admin.set_password(admin_password)
         db.session.add(admin)
         db.session.commit()
-        logger.info("管理员账号创建成功: admin/admin123")
+        logger.info(f"管理员账号创建成功: {admin_username}/{admin_password}")
     else:
         logger.info("管理员账号已存在")
 

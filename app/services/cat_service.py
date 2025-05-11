@@ -11,6 +11,9 @@ from .base_service import BaseService
 
 class CatService(BaseService):
     """猫咪信息服务层"""
+    def __init__(self, db):
+        super().__init__(db)
+        
     model = Cat  # 定义模型类
     
     @classmethod

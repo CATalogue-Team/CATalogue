@@ -71,3 +71,15 @@ class Cat(db.Model):
     
     def __repr__(self):
         return f'<Cat {self.name}>'
+
+class EnvironmentCheck(db.Model):
+    __tablename__ = 'environment_checks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    check_name = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(20), nullable=False)
+    message = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    def __repr__(self):
+        return f'<EnvironmentCheck {self.check_name}: {self.status}>'

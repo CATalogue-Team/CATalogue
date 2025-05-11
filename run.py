@@ -2,6 +2,7 @@
 from app import create_app
 from app.core.scheduler import init_scheduler
 from app.core.health import run_health_checks
+from flask_migrate import Migrate
 import sys
 import os
 from pathlib import Path
@@ -16,6 +17,9 @@ def main():
         os.chdir(project_root)
         app.root_path = project_root
 
+        # 初始化数据库迁移
+        Migrate(app, app.db)
+
         # 初始化定时任务
         if app.config.get('SCHEDULED_CHECKS', False):
             init_scheduler(app)
@@ -29,9 +33,10 @@ def main():
 if __name__ == '__main__':
     app = main()
     
-    # 执行环境检查
-    if not run_health_checks(app):
-        print("警告: 部分环境检查未通过", file=sys.stderr)
+    # 执行环境检查（在应用上下文中）
+    with app.app_context():
+        if not run_health_checks(app):
+            print("警告: 部分环境检查未通过", file=sys.stderr)
     
     # 运行应用
     app.run(
