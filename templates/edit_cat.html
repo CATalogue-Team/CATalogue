@@ -14,6 +14,7 @@
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
+                        <input type="hidden" name="referrer" value="{{ request.args.get('referrer', '') }}">
                         
                         <div class="row">
                             <div class="col-md-6 mb-4">
@@ -121,7 +122,7 @@
                         </div>
                         
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                            <a href="{{ url_for('cats.detail', id=cat.id) if cat else url_for('cats.admin__list') }}" 
+                            <a href="{% if request.args.get('referrer') == 'detail' and cat %}{{ url_for('cats.detail', id=cat.id) }}{% else %}{{ url_for('cats.admin__list') }}{% endif %}" 
                                class="btn btn-outline-secondary me-md-2">
                                 <i class="bi bi-x-circle"></i> 取消
                             </a>

@@ -83,7 +83,13 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
                         service.update(id, **form.data)
                         from flask import flash
                         flash(f'{model_name.capitalize()}更新成功!', 'success')
-                        return redirect(url_for(f'{name}.admin_{model_name}_list'))
+                        
+                        # 根据来源决定返回页面
+                        referrer = request.form.get('referrer')
+                        if referrer == 'detail' and hasattr(service, 'get'):
+                            return redirect(url_for(f'{name}.detail', id=id))
+                        else:
+                            return redirect(url_for(f'{name}.admin_{model_name}_list'))
                     except Exception as e:
                         current_app.logger.error(f'更新{model_name}失败: {str(e)}', exc_info=True)
                         from flask import flash
