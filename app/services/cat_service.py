@@ -79,13 +79,9 @@ class CatService(BaseService):
             
             # 第一张图片设为主图
             is_primary = i == 0
-            image_url = url_for('static', filename=f'uploads/{filename}', _external=False)
-            
-            # 验证生成的URL格式
-            if not image_url.startswith('/static/uploads/'):
-                current_app.logger.error(f"生成的图片URL格式不正确: {image_url}")
-                image_url = f"/static/uploads/{filename}"
-                current_app.logger.warning(f"已修正为: {image_url}")
+            # 生成并规范化图片URL
+            image_url = f"/static/uploads/{filename}"
+            current_app.logger.debug(f"生成的图片URL: {image_url}")
             
             db.session.add(CatImage(
                 url=image_url,
@@ -138,8 +134,12 @@ class CatService(BaseService):
                     save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
                     image.save(save_path)
                     
+                    # 生成并规范化图片URL
+                    image_url = f"/static/uploads/{filename}"
+                    current_app.logger.debug(f"生成的图片URL: {image_url}")
+                    
                     db.session.add(CatImage(
-                        url=url_for('static', filename=f'uploads/{filename}', _external=False),
+                        url=image_url,
                         is_primary=(i == 0),
                         cat_id=cat.id
                     ))
@@ -248,3 +248,35 @@ class CatService(BaseService):
     def get_adoptable_cats() -> List[Cat]:
         """获取可领养的猫咪(兼容旧接口)"""
         return CatService.search_cats(is_adopted=False)
+        
+    @classmethod
+    def validate_image_urls(cls):
+        """校验并修复数据库中的图片URL"""
+        from ..models import CatImage
+        invalid_urls = []
+        current_app.logger.info("开始校验图片URL...")
+        
+        try:
+            images = CatImage.query.all()
+            current_app.logger.info(f"共找到{len(images)}条图片记录")
+            
+            for image in images:
+                if not image.url:
+                    current_app.logger.warning(f"图片ID {image.id} URL为空")
+                    continue
+                    
+                if image.url.count('/static/uploads/') > 1:
+                    original_url = image.url
+                    image.url = '/static/uploads/' + image.url.split('/static/uploads/')[-1]
+                    db.session.commit()
+                    invalid_urls.append((original_url, image.url))
+                    current_app.logger.warning(f"修正重复路径: {original_url} -> {image.url}")
+                else:
+                    current_app.logger.debug(f"图片ID {image.id} URL格式正确: {image.url}")
+                    
+            current_app.logger.info(f"校验完成，共修正{len(invalid_urls)}条记录")
+            return invalid_urls
+            
+        except Exception as e:
+            current_app.logger.error(f"校验图片URL时出错: {str(e)}", exc_info=True)
+            raise

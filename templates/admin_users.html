@@ -48,11 +48,13 @@
                         </a>
                         {% if user.status == 'pending' %}
                         <form action="{{ url_for('admin.admin_users_approve', id=user.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-outline-success" title="通过">
                                 <i class="bi bi-check-circle"></i>
                             </button>
                         </form>
                         <form action="{{ url_for('admin.admin_users_reject', id=user.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-outline-danger" 
                                     onclick="return confirm('确定要拒绝该用户吗？')" title="拒绝">
                                 <i class="bi bi-x-circle"></i>
@@ -60,6 +62,7 @@
                         </form>
                         {% endif %}
                         <form action="{{ url_for('admin.admin_users_delete', id=user.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-outline-danger" 
                                     onclick="return confirm('确定要删除该用户吗？')" title="删除">
                                 <i class="bi bi-trash"></i>

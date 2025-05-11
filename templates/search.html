@@ -69,7 +69,12 @@
                 <div class="col">
                     <div class="card h-100">
                         {% if cat.images %}
-                        <img src="{{ cat.images[0].url }}" class="card-img-top" alt="{{ cat.name }}" style="height: 200px; object-fit: cover;">
+                        {% set img_url = cat.images[0].url.replace('//', '/') %}
+                        {% if img_url.startswith('/static/uploads/') %}
+                        <img src="{{ img_url }}" class="card-img-top" alt="{{ cat.name }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <img src="/static/uploads/{{ img_url.split('/')[-1] }}" class="card-img-top" alt="{{ cat.name }}" style="height: 200px; object-fit: cover;">
+                        {% endif %}
                         {% endif %}
                         <div class="card-body">
                             <h5 class="card-title">{{ cat.name }}</h5>

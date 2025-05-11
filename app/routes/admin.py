@@ -20,7 +20,7 @@ bp.static_url_path = '/admin/static'  # 单独设置静态URL路径
 @admin_required
 def admin_home():
     """后台管理首页"""
-    return redirect(url_for('admin_users_list'))
+    return redirect(url_for('admin.admin_users_list'))
 
 # 猫咪管理CRUD
 @crud_route('cats', CatService, CatForm, 'admin_cats.html', 'edit_cat.html')
@@ -52,6 +52,38 @@ class UserCRUD:
     def before_update(id, **data):
         """更新前的处理"""
         return {'is_admin': data['is_admin']}  # 只更新is_admin字段
+    
+    @bp.route('/users/approve/<int:id>', methods=['POST'], endpoint='admin_users_approve')
+    @login_required
+    @admin_required
+    def approve(id):
+        """批准用户"""
+        from flask import jsonify
+        try:
+            user = UserService.get(id)
+            if not user:
+                return jsonify({'error': '用户不存在'}), 404
+            
+            UserService.update(id, status='approved')
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @bp.route('/users/reject/<int:id>', methods=['POST'], endpoint='admin_users_reject')
+    @login_required
+    @admin_required
+    def reject(id):
+        """拒绝用户"""
+        from flask import jsonify
+        try:
+            user = UserService.get(id)
+            if not user:
+                return jsonify({'error': '用户不存在'}), 404
+            
+            UserService.update(id, status='rejected')
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
 # 应用管理员权限装饰器
 for endpoint in bp.view_functions:

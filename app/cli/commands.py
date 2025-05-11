@@ -24,6 +24,7 @@ from flask import current_app
 from flask.cli import with_appcontext
 import click
 from ..models import User
+from ..services.cat_service import CatService
 
 def register_cli_commands(app):
     """注册所有CLI命令到应用"""
@@ -96,3 +97,18 @@ def register_cli_commands(app):
                 click.echo(f"{user.id}\t{user.username}\t\t{'是' if user.is_admin else '否'}\t{user.status}")
         except Exception as e:
             click.echo(f"错误: {str(e)}", err=True)
+
+    @app.cli.command('validate-image-urls')
+    @with_appcontext
+    def validate_image_urls():
+        """校验并修复数据库中的图片URL"""
+        try:
+            click.echo("开始校验图片URL...")
+            invalid_urls = CatService.validate_image_urls()
+            if invalid_urls:
+                click.echo(f"共修正了{len(invalid_urls)}条图片URL记录")
+            else:
+                click.echo("所有图片URL格式正确，无需修正")
+        except Exception as e:
+            click.echo(f"校验图片URL时出错: {str(e)}", err=True)
+            current_app.logger.error(f"校验图片URL失败: {str(e)}", exc_info=True)

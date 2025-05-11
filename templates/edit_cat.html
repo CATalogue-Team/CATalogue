@@ -93,7 +93,8 @@
                                         <div class="position-relative image-thumbnail" data-image-id="{{ image.id }}">
                                             <img src="{{ image.url }}" 
                                                  width="200" 
-                                                 class="img-thumbnail rounded {% if image.is_primary %}border-primary border-2{% endif %}">
+                                                 class="img-thumbnail rounded {% if image.is_primary %}border-primary border-2{% endif %}"
+                                                 onerror="this.onerror=null;this.src='/static/images/default-cat.jpg';this.alt='图片加载失败'">
                                             {% if image.is_primary %}
                                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
                                                 主图

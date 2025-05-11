@@ -25,7 +25,12 @@
                         <div class="carousel-inner rounded">
                             {% for image in cat.images %}
                             <div class="carousel-item {% if image.is_primary %}active{% endif %}">
-                                <img src="{{ image.url }}" class="d-block w-100" alt="{{ cat.name }}">
+                                {% set img_url = image.url.replace('//', '/') %}
+                                {% if img_url.startswith('/static/uploads/') %}
+                                <img src="{{ img_url }}" class="d-block w-100" alt="{{ cat.name }}">
+                                {% else %}
+                                <img src="/static/uploads/{{ img_url.split('/')[-1] }}" class="d-block w-100" alt="{{ cat.name }}">
+                                {% endif %}
                                 {% if image.is_primary %}
                                 <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded">
                                     <small>主图</small>
