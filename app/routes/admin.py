@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 from ..services.cat_service import CatService
 from ..services.user_service import UserService
 from ..forms import CatForm, UserForm
-from ..decorators import admin_required
+from ..decorators import admin_required, prevent_self_operation
 from .base_crud import crud_blueprint
 
 # 创建管理员蓝图（显式设置名称空间）
@@ -20,7 +20,7 @@ bp.static_url_path = '/admin/static'  # 单独设置静态URL路径
 @admin_required
 def admin_home():
     """后台管理首页"""
-    return redirect(url_for('admin.admin_users_list'))
+    return redirect(url_for('admin.UserCRUD_list'))
 
 # 猫咪管理CRUD
 @crud_route('cats', CatService, CatForm, 'admin_cats.html', 'edit_cat.html')
@@ -56,33 +56,37 @@ class UserCRUD:
     @bp.route('/users/approve/<int:id>', methods=['POST'], endpoint='admin_users_approve')
     @login_required
     @admin_required
+    @prevent_self_operation
     def approve(id):
         """批准用户"""
-        from flask import jsonify
+        from flask import jsonify, flash
+        from flask_login import current_user
         try:
-            user = UserService.get(id)
-            if not user:
-                return jsonify({'error': '用户不存在'}), 404
-            
-            UserService.update(id, status='approved')
+            if not UserService.approve_user(id, current_user.id):
+                flash('用户不存在或审批失败', 'danger')
+                return jsonify({'error': '用户不存在或审批失败'}), 404
+            flash('用户审批成功', 'success')
             return jsonify({'success': True})
         except Exception as e:
+            flash(f'审批失败: {str(e)}', 'danger')
             return jsonify({'error': str(e)}), 500
     
     @bp.route('/users/reject/<int:id>', methods=['POST'], endpoint='admin_users_reject')
     @login_required
     @admin_required
+    @prevent_self_operation
     def reject(id):
         """拒绝用户"""
-        from flask import jsonify
+        from flask import jsonify, flash
+        from flask_login import current_user
         try:
-            user = UserService.get(id)
-            if not user:
-                return jsonify({'error': '用户不存在'}), 404
-            
-            UserService.update(id, status='rejected')
+            if not UserService.reject_user(id):
+                flash('用户不存在或拒绝失败', 'danger')
+                return jsonify({'error': '用户不存在或拒绝失败'}), 404
+            flash('用户已拒绝', 'success')
             return jsonify({'success': True})
         except Exception as e:
+            flash(f'拒绝失败: {str(e)}', 'danger')
             return jsonify({'error': str(e)}), 500
 
 # 应用管理员权限装饰器

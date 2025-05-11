@@ -27,6 +27,24 @@ class UserService(BaseService):
     def get_all_users() -> List[User]:
         """获取所有用户"""
         return User.query.all()
+        
+    @staticmethod
+    def get_paginated_users(page: int = 1, per_page: int = 10, search: str = None):
+        """
+        获取分页用户列表
+        参数:
+            page: 当前页码
+            per_page: 每页记录数
+            search: 搜索关键词(用户名)
+        返回:
+            SQLAlchemy分页对象
+        """
+        query = User.query.order_by(User.created_at.desc())
+        
+        if search:
+            query = query.filter(User.username.ilike(f'%{search}%'))
+            
+        return query.paginate(page=page, per_page=per_page, error_out=False)
     
     @staticmethod
     def create_user(password: str, **kwargs) -> User:
@@ -48,6 +66,9 @@ class UserService(BaseService):
     @staticmethod
     def approve_user(user_id: int, approved_by: int) -> bool:
         """审批用户账号"""
+        if user_id == approved_by:
+            return False
+            
         user = User.query.get(user_id)
         if not user:
             return False
@@ -58,8 +79,11 @@ class UserService(BaseService):
         return True
     
     @staticmethod
-    def reject_user(user_id: int) -> bool:
+    def reject_user(user_id: int, current_user_id: int = None) -> bool:
         """拒绝用户账号"""
+        if current_user_id and user_id == current_user_id:
+            return False
+            
         user = User.query.get(user_id)
         if not user:
             return False
@@ -69,11 +93,15 @@ class UserService(BaseService):
         return True
     
     @staticmethod
-    def update_user_role(user_id: int, is_admin: bool) -> bool:
+    def update_user_role(user_id: int, is_admin: bool, current_user_id: int = None) -> bool:
         """更新用户角色"""
+        if current_user_id and user_id == current_user_id:
+            return False
         return BaseService.update(User, user_id, is_admin=is_admin) is not None
     
     @staticmethod
-    def delete_user(user_id: int) -> bool:
+    def delete_user(user_id: int, current_user_id: int = None) -> bool:
         """删除用户"""
+        if current_user_id and user_id == current_user_id:
+            return False
         return BaseService.delete(User, user_id)

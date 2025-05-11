@@ -75,6 +75,9 @@ def create_app(config_class=Config):
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
     
+    # 在蓝图注册后导入装饰器
+    from .decorators import prevent_self_operation
+    
     # 生产环境路由监控(测试时跳过)
     if not app.debug and not app.testing and False:  # 测试时强制禁用
         from prometheus_client import Counter, generate_latest

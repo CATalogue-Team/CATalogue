@@ -6,7 +6,7 @@
 {% block content %}
 <div class="container mt-4">
     <h2>编辑用户</h2>
-    <form method="POST" action="{{ url_for('admin.edit_user', user_id=user_id) }}">
+    <form method="POST" action="{{ url_for('admin.admin_users_edit', id=item.id) }}">
         {{ form.hidden_tag() }}
         <div class="form-group">
             {{ form.username.label }}
@@ -17,7 +17,7 @@
             {{ form.is_admin.label(class="form-check-label") }}
         </div>
         <button type="submit" class="btn btn-primary">保存</button>
-        <a href="{{ url_for('admin.users_list') }}" class="btn btn-secondary">取消</a>
+        <a href="{{ url_for('admin.admin_users_list') }}" class="btn btn-secondary">取消</a>
     </form>
 </div>
 {% endblock %}

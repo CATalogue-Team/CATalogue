@@ -1,7 +1,8 @@
 
 from flask import Blueprint, render_template, redirect, url_for, request, current_app
-from flask_login import login_required
+from flask_login import login_required, current_user
 from functools import wraps
+from ..decorators import prevent_self_operation
 
 def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
     """创建基础CRUD蓝图工厂"""
@@ -70,8 +71,9 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
             # 编辑路由
             @bp.route(f'/{model_name}/edit/<int:id>', methods=['GET', 'POST'], endpoint=f'admin_{model_name}_edit')
             @login_required
+            @prevent_self_operation
             def edit(id):
-                item = service.get(id)
+                item = service.get(service.model, id)
                 if not item:
                     from flask import flash
                     flash('记录不存在', 'danger')
@@ -80,7 +82,13 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
                 form = form_class(obj=item)
                 if form.validate_on_submit():
                     try:
-                        service.update(id, **form.data)
+                        # 如果是用户编辑且当前用户是管理员，防止修改自己的管理员状态
+                        if model_name == 'users' and current_user.is_admin and current_user.id == id:
+                            from flask import flash
+                            flash('不能修改自己的管理员状态', 'danger')
+                            return redirect(url_for(f'{name}.admin_{model_name}_list'))
+                        
+                        service.update(service.model, id, **form.data)
                         from flask import flash
                         flash(f'{model_name.capitalize()}更新成功!', 'success')
                         
@@ -105,6 +113,7 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
             # 删除路由
             @bp.route(f'/{model_name}/delete/<int:id>', methods=['POST'], endpoint=f'admin_{model_name}_delete')
             @login_required
+            @prevent_self_operation
             def delete(id):
                 try:
                     if not request.form.get('csrf_token'):
