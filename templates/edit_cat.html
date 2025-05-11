@@ -86,35 +86,36 @@
                             
                             <div class="image-preview mt-3">
                                 {% if cat and cat.images %}
-                                <p class="text-muted"><i class="bi bi-image-fill"></i> 当前图片:</p>
-                                <div class="d-flex flex-wrap gap-2 mb-3" id="existingImages">
-                                    {% for image in cat.images %}
-                                    <div class="position-relative image-thumbnail" data-image-id="{{ image.id }}">
-                                        <img src="{{ image.url }}" 
-                                             width="200" 
-                                             class="img-thumbnail rounded {% if image.is_primary %}border-primary border-2{% endif %}">
-                                        {% if image.is_primary %}
-                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
-                                            主图
-                                        </span>
-                                        {% endif %}
-                                        <div class="btn-group btn-group-sm position-absolute top-0 end-0 m-1">
-                                            {% if not image.is_primary %}
-                                            <button type="button" class="btn btn-sm btn-outline-primary set-primary-btn"
-                                                    title="设为主图">
-                                                <i class="bi bi-star-fill"></i>
-                                            </button>
+                                    <p class="text-muted"><i class="bi bi-image-fill"></i> 当前图片:</p>
+                                    <div class="d-flex flex-wrap gap-2 mb-3" id="existingImages">
+                                        {% for image in cat.images %}
+                                        <div class="position-relative image-thumbnail" data-image-id="{{ image.id }}">
+                                            <img src="{{ image.url }}" 
+                                                 width="200" 
+                                                 class="img-thumbnail rounded {% if image.is_primary %}border-primary border-2{% endif %}">
+                                            {% if image.is_primary %}
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                                                主图
+                                            </span>
                                             {% endif %}
-                                            <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
-                                                    title="删除图片">
-                                                <i class="bi bi-trash-fill"></i>
-                                            </button>
+                                            <div class="btn-group btn-group-sm position-absolute top-0 end-0 m-1">
+                                                {% if not image.is_primary %}
+                                                <button type="button" class="btn btn-sm btn-outline-primary set-primary-btn"
+                                                        title="设为主图">
+                                                    <i class="bi bi-star-fill"></i>
+                                                </button>
+                                                {% endif %}
+                                                <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
+                                                        title="删除图片">
+                                                    <i class="bi bi-trash-fill"></i>
+                                                </button>
+                                            </div>
                                         </div>
+                                        {% endfor %}
                                     </div>
-                                    {% endfor %}
-                                </div>
                                 {% else %}
-                                <p class="text-muted"><i class="bi bi-image"></i> 暂无图片</p>
+                                    <div id="preview-container"></div>
+                                    <p class="text-muted"><i class="bi bi-image"></i> 暂无图片</p>
                                 {% endif %}
                             </div>
                         </div>
@@ -210,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 防止重复提交
+    // 防止重复提交并处理CSRF token
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
         let isSubmitting = false;
@@ -230,6 +231,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // 刷新CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            const csrfInput = form.querySelector('input[name="csrf_token"]');
+            if (csrfInput) {
+                csrfInput.value = csrfToken;
+            }
+            
             isSubmitting = true;
             const submitBtn = form.querySelector('button[type="submit"]');
             if (submitBtn) {
@@ -239,9 +247,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }, false);
     });
 
+    // 监听CSRF token错误
+    document.addEventListener('ajaxError', function(e) {
+        if (e.detail.status === 400 && e.detail.responseJSON && 
+            e.detail.responseJSON.error === 'CSRF token missing or incorrect') {
+            showToast('错误', '会话已过期，请刷新页面后重试', 'danger');
+        }
+    });
+
     // 图片上传增强
     const maxSize = 5 * 1024 * 1024; // 5MB
-    const previewContainer = document.querySelector('.image-preview');
+    const previewContainer = document.getElementById('preview-container') || document.querySelector('.image-preview');
+    if (!previewContainer) {
+        const container = document.createElement('div');
+        container.id = 'preview-container';
+        document.querySelector('.image-preview').appendChild(container);
+    }
     
     if (imageUploadInput) {
         // 实时预览
@@ -259,6 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 previewTitle.innerHTML = '<i class="bi bi-image me-1"></i>新上传的图片:';
                 previewContainer.appendChild(previewTitle);
                 
+                // 创建预览容器
                 const previewRow = document.createElement('div');
                 previewRow.className = 'd-flex flex-wrap gap-2 mb-3 upload-preview';
                 previewContainer.appendChild(previewRow);
@@ -282,6 +304,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 显示预览
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    // 确保预览行存在
+                    let currentPreviewRow = previewContainer.querySelector('.upload-preview');
+                    if (!currentPreviewRow) {
+                        currentPreviewRow = document.createElement('div');
+                        currentPreviewRow.className = 'd-flex flex-wrap gap-2 mb-3 upload-preview';
+                        previewContainer.appendChild(currentPreviewRow);
+                    }
+                    
                     const preview = document.createElement('div');
                     preview.className = 'position-relative upload-preview';
                     preview.innerHTML = `
@@ -302,10 +332,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         imageUploadInput.files = dataTransfer.files;
                         
                         if (newFiles.length === 0) {
-                            document.querySelectorAll('.upload-preview').forEach(el => el.remove());
+                            previewContainer.querySelectorAll('.upload-preview').forEach(el => el.remove());
                         }
                     });
-                    previewRow.appendChild(preview);
+                    currentPreviewRow.appendChild(preview);
                 };
                 reader.readAsDataURL(file);
             });

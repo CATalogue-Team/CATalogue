@@ -52,6 +52,7 @@
                             <i class="bi bi-pencil"></i>
                         </a>
                         <form action="{{ url_for('admin.admin_cats_delete', id=cat.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-outline-danger" 
                                     onclick="return confirm('确定要删除这只猫咪吗？')" title="删除">
                                 <i class="bi bi-trash"></i>

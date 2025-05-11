@@ -1,4 +1,25 @@
+from flask import current_app
+from ..models import CatImage
+from .. import db
 
+def register_commands(bp):
+    @bp.cli.command('fix-image-urls')
+    def fix_image_urls():
+        """修复CatImage表中错误的URL格式"""
+        count = 0
+        for image in CatImage.query.all():
+            original_url = image.url
+            if not image.url.startswith('/static/uploads/'):
+                filename = image.url.split('/')[-1]
+                image.url = f'/static/uploads/{filename}'
+                current_app.logger.info(f"修复URL: {original_url} -> {image.url}")
+                count += 1
+        
+        if count > 0:
+            db.session.commit()
+            current_app.logger.info(f"共修复了{count}条图片URL记录")
+        else:
+            current_app.logger.info("没有需要修复的图片URL记录")
 from flask import current_app
 from flask.cli import with_appcontext
 import click

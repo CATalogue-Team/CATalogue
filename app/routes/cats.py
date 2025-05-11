@@ -81,8 +81,14 @@ class CatCRUD:
             # 获取上传的图片文件
             images = []
             if form.images.data:
-                images = form.images.data if isinstance(form.images.data, list) else [form.images.data]
-            
+                try:
+                    # 尝试迭代处理，适用于MultipleFileField返回的任何可迭代对象
+                    images = [f for f in form.images.data if hasattr(f, 'filename')]
+                except TypeError:
+                    # 如果不可迭代，则作为单个文件处理
+                    if hasattr(form.images.data, 'filename'):
+                        images = [form.images.data]
+        
             # 直接调用Service层更新
             return CatService.update_cat(
                 item.id,

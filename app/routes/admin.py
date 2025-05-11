@@ -29,18 +29,19 @@ class CatCRUD:
     
     @staticmethod
     def handle_image(form, item=None):
-        """处理图片上传"""
-        if form.image.data:
-            filename = secure_filename(form.image.data.filename)
-            form.image.data.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
-            return filename
-        return item.image if item else None
+        """处理多图片上传"""
+        if form.images.data and any(form.images.data):
+            # 直接返回有效的FileStorage对象
+            return [img for img in form.images.data if img]
+        return []
     
     @staticmethod
     def before_delete(item):
         """删除前的处理"""
-        if item.image and os.path.exists(os.path.join(current_app.config['UPLOAD_FOLDER'], item.image)):
-            os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], item.image))
+        if item.images:
+            for image in item.images:
+                if os.path.exists(os.path.join(current_app.config['UPLOAD_FOLDER'], image.url)):
+                    os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], image.url))
 
 # 用户管理CRUD
 @crud_route('users', UserService, UserForm, 'admin_users.html', 'edit_user.html')

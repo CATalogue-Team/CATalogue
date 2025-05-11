@@ -81,11 +81,19 @@ class CatService(BaseService):
             is_primary = i == 0
             image_url = url_for('static', filename=f'uploads/{filename}', _external=False)
             
+            # 验证生成的URL格式
+            if not image_url.startswith('/static/uploads/'):
+                current_app.logger.error(f"生成的图片URL格式不正确: {image_url}")
+                image_url = f"/static/uploads/{filename}"
+                current_app.logger.warning(f"已修正为: {image_url}")
+            
             db.session.add(CatImage(
                 url=image_url,
                 is_primary=is_primary,
                 cat_id=cat.id
             ))
+            
+            current_app.logger.debug(f"保存图片URL: {image_url}")
         
         db.session.commit()
     
@@ -146,8 +154,32 @@ class CatService(BaseService):
     
     @classmethod
     def delete(cls, id: int) -> bool:
-        """删除猫咪信息"""
-        return super().delete(cls.model, id)
+        """删除猫咪信息(包含关联图片处理)"""
+        try:
+            cat = cls.model.query.get(id)
+            if not cat:
+                current_app.logger.warning(f"尝试删除不存在的猫咪ID: {id}")
+                return False
+                
+            # 删除关联图片
+            for image in cat.images:
+                try:
+                    image_path = os.path.join(current_app.static_folder, image.url.lstrip('/static/'))
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                except Exception as e:
+                    current_app.logger.error(f"删除图片文件失败: {str(e)}")
+            
+            # 删除数据库记录
+            db.session.delete(cat)
+            db.session.commit()
+            current_app.logger.info(f"成功删除猫咪ID: {id}")
+            return True
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"删除猫咪失败(ID:{id}): {str(e)}", exc_info=True)
+            raise
     
     @classmethod
     def create_cat(cls, user_id: int, **kwargs) -> Cat:

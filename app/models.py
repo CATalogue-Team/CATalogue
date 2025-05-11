@@ -37,6 +37,15 @@ class CatImage(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     cat_id = db.Column(db.Integer, db.ForeignKey('cats.id'), nullable=False)
     
+    def __init__(self, **kwargs):
+        url = kwargs.get('url', '')
+        if not url.startswith('/static/uploads/'):
+            from flask import current_app
+            filename = url.split('/')[-1]
+            kwargs['url'] = f'/static/uploads/{filename}'
+            current_app.logger.warning(f"修正图片URL格式: {url} -> {kwargs['url']}")
+        super().__init__(**kwargs)
+    
     def __repr__(self):
         return f'<CatImage {self.url}>'
 
