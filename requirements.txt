@@ -9,7 +9,7 @@ Flask-Limiter==2.8.1
 sentry-sdk[flask]==1.15.0
 python-dotenv==0.21.0
 SQLAlchemy==1.4.46
-alembic==1.8.1
+alembic>=1.9.0
 Werkzeug==2.3.7
 Jinja2==3.1.2
 WTForms==3.0.1
