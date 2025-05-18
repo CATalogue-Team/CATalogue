@@ -1,11 +1,41 @@
 
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, abort
 from flask_login import login_required, current_user
 import logging
 import os
 from pathlib import Path
+from app.models import User, Cat
+from app.services.user_service import UserService
+from app.services.cat_service import CatService
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+@bp.route('/users', methods=['GET'])
+@login_required
+def list_users():
+    """获取用户列表"""
+    if not current_user.is_admin:
+        abort(403)
+    users = UserService.get_all_users()
+    return jsonify([u.to_dict() for u in users])
+
+@bp.route('/cats', methods=['GET'])
+@login_required
+def list_cats():
+    """获取猫咪列表""" 
+    if not current_user.is_admin:
+        abort(403)
+    cats = CatService.get_all_cats()
+    return jsonify([c.to_dict() for c in cats])
+
+@bp.route('/approvals', methods=['GET'])
+@login_required
+def list_approvals():
+    """获取待审批项"""
+    if not current_user.is_admin:
+        abort(403)
+    # TODO: 实现审批逻辑
+    return jsonify([])
 
 # ... 其他路由 ...
 
@@ -55,6 +85,9 @@ def set_log_level():
     if not current_user.is_admin:
         return jsonify({'error': '无权访问'}), 403
     
+    if not request.json or 'level' not in request.json:
+        return jsonify({'error': '缺少level参数'}), 400
+        
     level = request.json.get('level')
     if level not in ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'):
         return jsonify({'error': '无效的日志级别'}), 400
@@ -69,4 +102,3 @@ def set_log_level():
     
     current_app.logger.info(f"日志级别已更新为: {level}")
     return jsonify({'message': f'日志级别已设置为{level}'})
-

@@ -28,6 +28,17 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f'<User {self.username}>'
 
+    def to_dict(self):
+        """将用户对象转换为字典"""
+        return {
+            'id': self.id,
+            'username': self.username,
+            'is_admin': self.is_admin,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None
+        }
+
 class CatImage(db.Model):
     __tablename__ = 'cat_images'
     
@@ -71,6 +82,21 @@ class Cat(db.Model):
     
     def __repr__(self):
         return f'<Cat {self.name}>'
+
+    def to_dict(self):
+        """将猫咪对象转换为字典"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'breed': self.breed,
+            'age': self.age,
+            'description': self.description,
+            'is_adopted': self.is_adopted,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'user_id': self.user_id,
+            'primary_image': self.primary_image
+        }
 
 class EnvironmentCheck(db.Model):
     __tablename__ = 'environment_checks'
