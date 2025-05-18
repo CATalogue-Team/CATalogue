@@ -1,6 +1,25 @@
 
 # CATalogue - Professional Cat Information Management System
 
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
+[![Build Status](https://github.com/your-repo/CATalogue/actions/workflows/tests.yml/badge.svg)](https://github.com/your-repo/CATalogue/actions)
+[![Coverage Status](https://coveralls.io/repos/github/your-repo/CATalogue/badge.svg)](https://coveralls.io/github/your-repo/CATalogue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Table of Contents
+- [Core Value](#-core-value)
+- [Features](#-features) 
+- [Quick Start](#-quick-start)
+- [Configuration](#-configuration-guide)
+- [Developer Docs](#-developer-documentation)
+- [Contributing](#-how-to-contribute)
+- [License](#-license)
+
+## Requirements
+- Python 3.8+
+- PostgreSQL 12+ or SQLite 3
+- Node.js 16+ (for frontend build)
+
 ## 📌 Core Value
 Provides efficient cat information management solutions for animal rescue organizations, including:
 - Complete cat information lifecycle management

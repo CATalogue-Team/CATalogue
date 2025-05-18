@@ -1,8 +1,30 @@
-
 # CATalogue - 专业猫咪信息管理系统
 
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
+[![Build Status](https://github.com/your-repo/CATalogue/actions/workflows/tests.yml/badge.svg)](https://github.com/your-repo/CATalogue/actions)
+[![Coverage Status](https://coveralls.io/repos/github/your-repo/CATalogue/badge.svg)](https://coveralls.io/github/your-repo/CATalogue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## 目录
+
+- [核心价值](#-核心价值)
+- [功能特性](#-功能特性)
+- [快速入门](#-快速入门)
+- [配置指南](#-配置指南)
+- [开发者文档](#-开发者文档)
+- [参与贡献](#-参与贡献)
+- [开源协议](#-开源协议)
+
+## 环境要求
+
+- Python 3.8+
+- PostgreSQL 12+ 或 SQLite 3
+- Node.js 16+ (前端构建)
+
 ## 📌 核心价值
+
 为动物救助机构提供高效的猫咪信息管理解决方案，包含：
+
 - 完整的猫咪信息生命周期管理
 - 多角色协作工作流
 - 数据安全与权限控制
@@ -11,27 +33,31 @@
 ## 🛠️ 功能特性
 
 ### 用户系统
+
 - 多角色认证（管理员/普通用户）
 - 注册审批流程
 - 密码加密存储（PBKDF2+SHA256）
 - 会话管理与活动日志
 
 ### 猫咪管理
+
 - 完整档案管理（基本信息+多图上传）
 - 领养状态跟踪（待领养/已领养）
 - 高级搜索与筛选
 - 批量导入/导出
 
 ### 后台管理
+
 - 基于角色的访问控制
 - 数据审核与版本记录
-- 系统监控仪表盘 (Prometheus指标端点`/metrics`)
+- 系统监控仪表盘 (Prometheus指标端点 `/metrics`)
 - 请求日志与性能监控
 - 自动化数据备份
 
 ## 🚀 快速入门
 
 ### 环境准备
+
 ```bash
 # 克隆仓库
 git clone https://github.com/your-repo/CATalogue.git
@@ -44,6 +70,7 @@ venv\Scripts\activate     # Windows
 ```
 
 ### 安装依赖
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -51,6 +78,7 @@ pip install -r requirements.txt
 ## 🗄️ 数据库初始化
 
 ### 1. 常规迁移方式 (推荐开发使用)
+
 ```bash
 # 初始化迁移仓库
 flask db init
@@ -73,6 +101,7 @@ flask create-admin admin securePassword123!
 ```
 
 ### 2. 使用初始化脚本 (首次部署/重置数据)
+
 ```bash
 # 基本初始化(使用默认管理员账号)
 python init_db.py
@@ -92,6 +121,7 @@ python init_db.py --skip-samples
 ## 📜 日志管理
 
 ### 查看日志
+
 ```bash
 # 查看日志文件列表
 curl -H "Authorization: Bearer <token>" http://localhost:5000/admin/logs
@@ -101,6 +131,7 @@ curl -H "Authorization: Bearer <token>" http://localhost:5000/admin/logs/app.log
 ```
 
 ### 动态调整日志级别
+
 ```bash
 # 设置日志级别(DEBUG/INFO/WARNING/ERROR/CRITICAL)
 curl -X PUT -H "Content-Type: application/json" \
@@ -110,6 +141,7 @@ curl -X PUT -H "Content-Type: application/json" \
 ```
 
 ### 日志配置
+
 ```ini
 # .env 日志相关配置
 LOG_LEVEL=INFO  # 日志级别
@@ -118,22 +150,26 @@ LOG_FORMAT='%(asctime)s - %(name)s - %(levelname)s - %(message)s'  # 日志格�
 ```
 
 ### 环境差异
-| 场景         | 开发环境                      | 生产环境                     |
-|--------------|-----------------------------|----------------------------|
-| 推荐方式      | 常规迁移 或 init_db.py       | 仅使用常规迁移               |
-| 数据保留      | 可随意重置                   | 必须备份后操作               |
-| 适用场景      | 开发测试                     | 正式部署                    |
+
+| 场景     | 开发环境               | 生产环境       |
+| -------- | ---------------------- | -------------- |
+| 推荐方式 | 常规迁移 或 init_db.py | 仅使用常规迁移 |
+| 数据保留 | 可随意重置             | 必须备份后操作 |
+| 适用场景 | 开发测试               | 正式部署       |
 
 ### 注意事项
+
 1. **init_db.py会清空现有数据**，生产环境慎用
-2. 示例图片存储在`static/uploads/`
+2. 示例图片存储在 `static/uploads/`
 3. 管理员账号自动创建: admin/admin123
 4. 使用前请确保:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ### 启动服务
+
 ```bash
 # 开发模式
 flask run --debug
@@ -145,13 +181,15 @@ gunicorn -w 4 --bind 0.0.0.0:8000 "run:app"
 ## ⚙️ 配置指南
 
 ### 关键配置项
-| 配置项 | 说明 | 示例值 |
-|--------|------|--------|
-| `DATABASE_URL` | 数据库连接 | `sqlite:///instance/cats.db` |
-| `UPLOAD_FOLDER` | 文件上传路径 | `./static/uploads` |
-| `MAX_IMAGE_SIZE` | 图片大小限制 | `5242880` (5MB) |
+
+| 配置项             | 说明         | 示例值                         |
+| ------------------ | ------------ | ------------------------------ |
+| `DATABASE_URL`   | 数据库连接   | `sqlite:///instance/cats.db` |
+| `UPLOAD_FOLDER`  | 文件上传路径 | `./static/uploads`           |
+| `MAX_IMAGE_SIZE` | 图片大小限制 | `5242880` (5MB)              |
 
 ### 生产环境建议
+
 ```ini
 # .env 文件示例
 FLASK_ENV=production
@@ -165,9 +203,10 @@ DATABASE_URL=postgresql://user:pass@localhost/prod_db
 ![猫咪详情](static/screenshots/cat_detail.png)
 ![管理后台](static/screenshots/admin.png)
 
-##  开发者文档
+## 开发者文档
 
 ### 系统架构图
+
 ```mermaid
 graph TD
     A[前端] -->|HTTP请求| B[Flask应用]
@@ -180,6 +219,7 @@ graph TD
 ```
 
 ### 项目结构
+
 ```
 .
 ├── app/              # 核心模块
@@ -196,21 +236,26 @@ graph TD
 #### 猫咪管理接口
 
 **1. 获取猫咪列表**
+
 ```
 GET /cats
 ```
+
 参数：
+
 - `page` - 页码(默认1)
 - `per_page` - 每页数量(默认10)
 - `breed` - 按品种筛选
 - `is_adopted` - 按领养状态筛选(true/false)
 
 示例请求：
+
 ```bash
 curl "http://localhost:5000/cats?page=2&breed=波斯猫"
 ```
 
 响应示例：
+
 ```json
 {
   "items": [
@@ -229,14 +274,18 @@ curl "http://localhost:5000/cats?page=2&breed=波斯猫"
 ```
 
 **2. 创建猫咪记录**
+
 ```
 POST /cats
 ```
+
 请求头：
+
 - `Content-Type: application/json`
 - `Authorization: Bearer <token>`
 
 请求体：
+
 ```json
 {
   "name": "新猫咪",
@@ -247,13 +296,17 @@ POST /cats
 ```
 
 **3. 更新猫咪信息**
+
 ```
 PUT /cats/<id>
 ```
+
 参数：
+
 - `id` - 猫咪ID(路径参数)
 
 请求体：
+
 ```json
 {
   "age": 2,
@@ -264,26 +317,31 @@ PUT /cats/<id>
 #### 系统监控接口
 
 **获取监控指标**
+
 ```
 GET /metrics
 ```
+
 响应格式：
+
 ```
 # TYPE http_requests_total counter
 http_requests_total{method="GET",endpoint="cats",status="200"} 42
 ```
 
 #### 通用响应状态码
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 请求成功 |
-| 201 | 创建成功 |
-| 400 | 参数错误 |
-| 401 | 未授权 |
-| 404 | 资源不存在 |
-| 500 | 服务器错误 |
+
+| 状态码 | 说明       |
+| ------ | ---------- |
+| 200    | 请求成功   |
+| 201    | 创建成功   |
+| 400    | 参数错误   |
+| 401    | 未授权     |
+| 404    | 资源不存在 |
+| 500    | 服务器错误 |
 
 ### 测试指南
+
 ```bash
 # 运行单元测试
 pytest tests/
@@ -298,16 +356,19 @@ curl http://localhost:5000/metrics
 ## ❓ 常见问题
 
 ### Q: 如何重置管理员密码？
+
 ```bash
 flask reset-password <username> <new_password>
 ```
 
 ### Q: 上传图片失败怎么办？
-1. 检查`static/uploads`目录权限
-2. 确认图片大小不超过配置的`MAX_IMAGE_SIZE`
+
+1. 检查 `static/uploads`目录权限
+2. 确认图片大小不超过配置的 `MAX_IMAGE_SIZE`
 3. 检查文件扩展名是否允许(jpg/png/gif)
 
 ### Q: 如何备份数据库？
+
 ```bash
 # SQLite
 cp instance/cats.db instance/backup_$(date +%Y%m%d).db
@@ -319,6 +380,7 @@ pg_dump -U username -d dbname > backup_$(date +%Y%m%d).sql
 ## 🤝 参与贡献
 
 ### 开发流程
+
 1. Fork项目仓库
 2. 创建特性分支 (`git checkout -b feature/xxx`)
 3. 安装预提交钩子:
@@ -330,12 +392,14 @@ pg_dump -U username -d dbname > backup_$(date +%Y%m%d).sql
 6. 新建Pull Request
 
 ### 代码规范
+
 - 遵循PEP 8 Python代码风格
 - 使用类型注解(Type Hints)
 - 重要变更需添加单元测试
 - 提交信息遵循Conventional Commits规范
 
 ### CI/CD流程
+
 ```mermaid
 graph LR
     A[代码提交] --> B[运行测试]
@@ -349,19 +413,23 @@ graph LR
 ## 🗺️ 开发路线图
 
 ### 近期计划
+
 - [ ] 增加猫咪健康记录功能
 - [ ] 实现多语言支持
 - [ ] 开发移动端应用
 
 ### 长期规划
+
 - [ ] 集成第三方支付系统
 - [ ] 添加AI图片识别功能
 - [ ] 构建数据分析平台
 
 ## 📜 开源协议
+
 MIT License © 2023 CATalogue Team
 
 ## 🔗 相关资源
+
 - [API文档](https://api.catalogue.example.com/docs)
 - [演示环境](https://demo.catalogue.example.com)
 - [问题追踪](https://github.com/your-repo/CATalogue/issues)
