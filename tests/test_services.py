@@ -25,7 +25,7 @@ def test_user_service(app):
         db.create_all()
         
         # 测试用户创建
-        TestReporter.test_step("测试创建用户")
+        TestReporter.log_step("测试创建用户")
         user = UserService.create_user(
             username=f'testuser_{datetime.now().timestamp()}',
             password='password'
@@ -33,7 +33,7 @@ def test_user_service(app):
         assert user.id is not None
         
         # 测试用户查询
-        TestReporter.test_step("测试查询用户")
+        TestReporter.log_step("测试查询用户")
         found_user = UserService.get_user_by_username(user.username)
         assert found_user is not None
         assert found_user.id == user.id
@@ -56,7 +56,7 @@ def test_cat_service(app):
             )
             
             # 测试猫咪创建
-            TestReporter.test_step("测试创建猫咪-正常情况")
+            TestReporter.log_step("测试创建猫咪-正常情况")
             cat = CatService.create_cat(
                 name='Test Cat',
                 breed='Test Breed',
@@ -67,7 +67,7 @@ def test_cat_service(app):
             assert cat.id is not None
             
             # 测试重复创建
-            TestReporter.test_step("测试创建猫咪-重复名称")
+            TestReporter.log_step("测试创建猫咪-重复名称")
             with pytest.raises(ValueError):
                 CatService.create_cat(
                     name='Test Cat',
@@ -78,7 +78,7 @@ def test_cat_service(app):
                 )
                 
             # 测试边界值
-            TestReporter.test_step("测试边界值-最小年龄")
+            TestReporter.log_step("测试边界值-最小年龄")
             young_cat = CatService.create_cat(
                 name='Young Cat',
                 breed='Test Breed',
@@ -89,25 +89,25 @@ def test_cat_service(app):
             assert young_cat.age == 0
             
             # 测试查询
-            TestReporter.test_step("测试查询猫咪")
+            TestReporter.log_step("测试查询猫咪")
             found_cat = CatService.get(cat.id)
             assert found_cat == cat
             
             # 测试更新
-            TestReporter.test_step("测试更新猫咪")
+            TestReporter.log_step("测试更新猫咪")
             updated = CatService.update_cat(cat.id, age=3)
             assert updated is not None
             assert updated.age == 3
             
             # 测试删除
-            TestReporter.test_step("测试删除猫咪")
+            TestReporter.log_step("测试删除猫咪")
             delete_result = CatService.delete(cat.id)
             assert delete_result is True
             deleted_cat = CatService.get(cat.id)
             assert deleted_cat is None
             
             # 测试图片上传功能
-            TestReporter.test_step("测试图片上传功能")
+            TestReporter.log_step("测试图片上传功能")
             from app.models import CatImage
             from werkzeug.datastructures import FileStorage
             from io import BytesIO
@@ -143,7 +143,7 @@ def test_cat_service(app):
             assert cat_with_images.primary_image is not None
             
             # 测试无效文件类型
-            TestReporter.test_step("测试无效文件类型")
+            TestReporter.log_step("测试无效文件类型")
             invalid_file = FileStorage(
                 stream=BytesIO(b'invalid content'),
                 filename='test.txt',
@@ -153,7 +153,7 @@ def test_cat_service(app):
                 CatService._handle_images(test_cat.id, [invalid_file])
             
             # 测试批量操作
-            TestReporter.test_step("测试批量操作")
+            TestReporter.log_step("测试批量操作")
             cats = []
             for i in range(5):
                 cat = CatService.create_cat(

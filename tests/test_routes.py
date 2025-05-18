@@ -42,7 +42,7 @@ def test_main_routes(client, app):
     ]
     
     for name, endpoint, params in routes:
-        TestReporter.test_step(f"测试 {name} 路由")
+        TestReporter.log_step(f"测试 {name} 路由")
         start_time = time.time()
         with app.app_context():
             res = client.get(url_for(endpoint, **params))
@@ -73,7 +73,7 @@ def test_cat_routes(client, app):
     ]
     
     for name, endpoint, params in routes:
-        TestReporter.test_step(f"测试 {name} 路由")
+        TestReporter.log_step(f"测试 {name} 路由")
         start_time = time.time()
         with app.app_context():
             res = client.get(url_for(endpoint, **params))
@@ -104,7 +104,7 @@ def test_auth_routes(client, app):
     ]
     
     for name, endpoint, params in routes:
-        TestReporter.test_step(f"测试 {name} 路由")
+        TestReporter.log_step(f"测试 {name} 路由")
         start_time = time.time()
         with app.app_context():
             res = client.get(url_for(endpoint, **params))

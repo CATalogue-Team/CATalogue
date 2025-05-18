@@ -25,14 +25,14 @@ def test_user_model(app):
         db.create_all()
         
         # 测试用户创建
-        TestReporter.test_step("创建用户")
+        TestReporter.log_step("创建用户")
         user = User(username=f'test_{datetime.now().timestamp()}')
         user.set_password('password')
         db.session.add(user)
         db.session.commit()
         
         # 验证密码
-        TestReporter.test_step("验证密码")
+        TestReporter.log_step("验证密码")
         assert user.check_password('password')
         assert not user.check_password('wrong')
         
@@ -52,7 +52,7 @@ def test_cat_model(app):
         db.session.commit()
         
         # 测试猫咪创建
-        TestReporter.test_step("创建猫咪")
+        TestReporter.log_step("创建猫咪")
         cat = Cat(name='Test Cat', breed='Test Breed', 
                  age=2, description='Test description',
                  user_id=user.id)
@@ -60,7 +60,7 @@ def test_cat_model(app):
         db.session.commit()
         
         # 验证关系
-        TestReporter.test_step("验证用户-猫咪关系")
+        TestReporter.log_step("验证用户-猫咪关系")
         assert cat.owner == user
         assert cat in user.cats
         
@@ -85,13 +85,13 @@ def test_cat_image_model(app):
         db.session.commit()
         
         # 测试图片创建
-        TestReporter.test_step("创建猫咪图片")
+        TestReporter.log_step("创建猫咪图片")
         image = CatImage(url='test.jpg', cat_id=cat.id)
         db.session.add(image)
         db.session.commit()
         
         # 验证关系
-        TestReporter.test_step("验证猫咪-图片关系")
+        TestReporter.log_step("验证猫咪-图片关系")
         assert image.cat == cat
         assert image in cat.images
         

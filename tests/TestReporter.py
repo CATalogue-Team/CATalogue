@@ -28,8 +28,8 @@ class TestReporter:
         )
         
     @staticmethod
-    def test_step(description):
-        """测试步骤"""
+    def log_step(description):
+        """记录测试步骤"""
         print(f"\n{Fore.YELLOW}▷ {description}{Style.RESET_ALL}")
         return None
         
