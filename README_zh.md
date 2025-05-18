@@ -167,6 +167,18 @@ DATABASE_URL=postgresql://user:pass@localhost/prod_db
 
 ##  开发者文档
 
+### 系统架构图
+```mermaid
+graph TD
+    A[前端] -->|HTTP请求| B[Flask应用]
+    B -->|ORM操作| C[(数据库)]
+    B --> D[服务层]
+    D --> E[业务逻辑]
+    D --> F[文件存储]
+    B --> G[认证授权]
+    G --> H[用户管理]
+```
+
 ### 项目结构
 ```
 .
@@ -305,11 +317,51 @@ pg_dump -U username -d dbname > backup_$(date +%Y%m%d).sql
 ```
 
 ## 🤝 参与贡献
+
+### 开发流程
 1. Fork项目仓库
 2. 创建特性分支 (`git checkout -b feature/xxx`)
-3. 提交修改 (`git commit -am 'Add some feature'`)
-4. 推送分支 (`git push origin feature/xxx`)
-5. 新建Pull Request
+3. 安装预提交钩子:
+   ```bash
+   pre-commit install
+   ```
+4. 提交修改 (`git commit -am 'Add some feature'`)
+5. 推送分支 (`git push origin feature/xxx`)
+6. 新建Pull Request
+
+### 代码规范
+- 遵循PEP 8 Python代码风格
+- 使用类型注解(Type Hints)
+- 重要变更需添加单元测试
+- 提交信息遵循Conventional Commits规范
+
+### CI/CD流程
+```mermaid
+graph LR
+    A[代码提交] --> B[运行测试]
+    B --> C[代码质量检查]
+    C --> D[构建Docker镜像]
+    D --> E[部署到测试环境]
+    E --> F[人工验收]
+    F --> G[生产部署]
+```
+
+## 🗺️ 开发路线图
+
+### 近期计划
+- [ ] 增加猫咪健康记录功能
+- [ ] 实现多语言支持
+- [ ] 开发移动端应用
+
+### 长期规划
+- [ ] 集成第三方支付系统
+- [ ] 添加AI图片识别功能
+- [ ] 构建数据分析平台
 
 ## 📜 开源协议
 MIT License © 2023 CATalogue Team
+
+## 🔗 相关资源
+- [API文档](https://api.catalogue.example.com/docs)
+- [演示环境](https://demo.catalogue.example.com)
+- [问题追踪](https://github.com/your-repo/CATalogue/issues)
