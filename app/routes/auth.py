@@ -1,13 +1,14 @@
 
 from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from .. import db
+from .. import db, limiter
 from ..services.user_service import UserService
 from ..forms import RegisterForm
 
 bp = Blueprint('auth', __name__)
 
 @bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 def login():
     from ..forms import LoginForm
     form = LoginForm()

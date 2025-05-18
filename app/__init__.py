@@ -4,6 +4,10 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from sentry_sdk.integrations.flask import FlaskIntegration
+import sentry_sdk
 from werkzeug.middleware.proxy_fix import ProxyFix
 from logging.handlers import RotatingFileHandler
 import logging
@@ -15,6 +19,10 @@ db = SQLAlchemy()
 cache = Cache()
 login_manager = LoginManager()
 csrf = CSRFProtect()
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 def create_app(config_class=Config):
     app = Flask(__name__, 
@@ -60,6 +68,16 @@ def create_app(config_class=Config):
     cache.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
+    
+    # 初始化Sentry监控
+    if app.config.get('SENTRY_DSN'):
+        sentry_sdk.init(
+            dsn=app.config['SENTRY_DSN'],
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=1.0,
+            environment=app.config.get('ENVIRONMENT', 'development')
+        )
     
     # 初始化健康检查
     from app.core.health_check import EnvironmentChecker

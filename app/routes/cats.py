@@ -1,6 +1,7 @@
 
 from flask import Blueprint, render_template, redirect, url_for, request, current_app, flash
 from flask_login import login_required, current_user
+from .. import limiter
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
@@ -132,6 +133,7 @@ class CatCRUD:
 @bp.route('/<int:cat_id>/images', methods=['POST'])
 @login_required
 @admin_required
+@limiter.limit("5 per minute")
 def manage_images(cat_id):
     """管理猫咪图片"""
     cat = CatService.get(cat_id)

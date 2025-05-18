@@ -1,5 +1,5 @@
 
-from app import create_app
+from app import create_app, db
 from app.core.scheduler import init_scheduler
 from app.core.health import run_health_checks
 from flask_migrate import Migrate
@@ -15,10 +15,10 @@ def main():
         # 配置工作目录
         project_root = Path(__file__).parent
         os.chdir(project_root)
-        app.root_path = project_root
+        app.root_path = str(project_root)  # 转换为字符串类型
 
         # 初始化数据库迁移
-        Migrate(app, app.db)
+        Migrate(app, db)
 
         # 初始化定时任务
         if app.config.get('SCHEDULED_CHECKS', False):
