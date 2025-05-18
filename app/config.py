@@ -33,3 +33,16 @@ class Config:
     ITEMS_PER_PAGE = 10  # 默认每页显示数量
     FLASK_ENV = 'development'
     FLASK_DEBUG = True
+
+
+class TestingConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    CACHE_TYPE = 'NullCache'
+    WTF_CSRF_ENABLED = False
+    LOGIN_DISABLED = False
+    PRESERVE_CONTEXT_ON_EXCEPTION = False
+    SERVER_NAME = 'localhost.localdomain'
+    APPLICATION_ROOT = '/'
+    PREFERRED_URL_SCHEME = 'http'

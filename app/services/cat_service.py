@@ -188,6 +188,11 @@ class CatService(BaseService):
     def create_cat(cls, user_id: int, **kwargs) -> Cat:
         """创建猫咪信息(兼容旧接口)"""
         kwargs['user_id'] = user_id
+        
+        # 检查猫咪名称是否已存在
+        if 'name' in kwargs and cls.model.query.filter_by(name=kwargs['name']).first():
+            raise ValueError(f"猫咪名称'{kwargs['name']}'已存在")
+            
         return cls.create(**kwargs)
     
     @classmethod
