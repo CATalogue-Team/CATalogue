@@ -71,6 +71,9 @@ def create_app(config_class=Config):
         return response
     
     # 初始化扩展
+    if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite://'):
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'poolclass': None}
+    
     db.init_app(app)
     app.db = db  # type: ignore  # 使db实例可通过app访问
     cache.init_app(app)

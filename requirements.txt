@@ -14,4 +14,4 @@ Werkzeug==2.3.7
 Jinja2==3.1.2
 WTForms==3.0.1
 pytest==7.2.2
-coverage==7.2.2
+coverage[toml]>=7.5.0

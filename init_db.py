@@ -14,13 +14,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 示例图片URL
-SAMPLE_IMAGES = [
-    "cat1.jpg",
-    "cat2.jpg",
-    "cat3.jpg"
-]
-
 def setup_upload_folder(app):
     """设置上传文件夹"""
     upload_folder = Path(app.config['UPLOAD_FOLDER'])
@@ -63,9 +56,9 @@ def init_database(admin_username='admin', admin_password='admin123', skip_sample
                 # 3. 初始化管理员账户
                 init_admin_account(admin_username, admin_password)
                 
-                # 4. 初始化示例数据(可选)
+                # 4. 初始化示例猫咪数据(可选)
                 if not skip_samples:
-                    init_sample_data(app)
+                    init_sample_cats()
             
             logger.info("数据库初始化完成")
             logger.info(f"用户总数: {User.query.count()}")
@@ -122,8 +115,8 @@ def init_admin_account(admin_username='admin', admin_password='admin123'):
     else:
         logger.info("管理员账号已存在")
 
-def init_sample_data(app):
-    """初始化示例猫咪数据"""
+def init_sample_cats():
+    """初始化示例猫咪数据(不包含图片)"""
     if Cat.query.count() == 0:
         logger.info("正在创建示例猫咪数据...")
         
@@ -154,25 +147,7 @@ def init_sample_data(app):
         
         db.session.bulk_save_objects(cats)
         db.session.commit()
-        
-        # 为每只猫添加示例图片
-        for i, cat in enumerate(Cat.query.all()):
-            for j, img_name in enumerate(SAMPLE_IMAGES):
-                # 创建示例图片文件
-                img_path = Path(app.config['UPLOAD_FOLDER']) / img_name
-                if not img_path.exists():
-                    with open(img_path, 'wb') as f:
-                        f.write(os.urandom(1024))  # 生成随机内容作为示例图片
-                
-                # 添加图片记录
-                db.session.add(CatImage(
-                    url=f'uploads/{img_name}',
-                    is_primary=j == 0,  # 第一张设为主图
-                    cat_id=cat.id
-                ))
-        
-        db.session.commit()
-        logger.info(f"已创建 {len(cats)} 条示例猫咪数据，每只猫添加了 {len(SAMPLE_IMAGES)} 张图片")
+        logger.info(f"已创建 {len(cats)} 条示例猫咪数据")
 
 if __name__ == '__main__':
     init_database()

@@ -4,31 +4,10 @@ from app import create_app
 from flask import url_for
 import time
 from colorama import init, Fore
+from .TestReporter import TestReporter
 
 # 初始化彩色输出
 init(autoreset=True)
-
-class TestReporter:
-    @staticmethod
-    def start_test(name):
-        print(f"\n{Fore.CYAN}▶ 开始测试: {name}{Fore.RESET}")
-        
-    @staticmethod    
-    def end_test(name, duration):
-        print(f"{Fore.CYAN}◀ 完成测试: {name} (耗时: {duration:.2f}s){Fore.RESET}")
-        
-    @staticmethod
-    def test_step(description):
-        print(f"{Fore.YELLOW}▷ 测试步骤: {description}{Fore.RESET}")
-        return None  # 修复PytestReturnNotNoneWarning
-        
-    @staticmethod
-    def success(message):
-        print(f"{Fore.GREEN}✓ 成功: {message}{Fore.RESET}")
-        
-    @staticmethod
-    def failure(message):
-        print(f"{Fore.RED}✗ 失败: {message}{Fore.RESET}")
 
 @pytest.fixture
 def description():
