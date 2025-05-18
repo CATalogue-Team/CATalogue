@@ -159,7 +159,13 @@ SECRET_KEY=your-secret-key
 DATABASE_URL=postgresql://user:pass@localhost/prod_db
 ```
 
-## 📚 开发者文档
+## 🖼️ 界面截图
+
+![首页](static/screenshots/home.png)
+![猫咪详情](static/screenshots/cat_detail.png)
+![管理后台](static/screenshots/admin.png)
+
+##  开发者文档
 
 ### 项目结构
 ```
@@ -275,6 +281,27 @@ pytest --cov=app tests/
 
 # 测试监控端点
 curl http://localhost:5000/metrics
+```
+
+## ❓ 常见问题
+
+### Q: 如何重置管理员密码？
+```bash
+flask reset-password <username> <new_password>
+```
+
+### Q: 上传图片失败怎么办？
+1. 检查`static/uploads`目录权限
+2. 确认图片大小不超过配置的`MAX_IMAGE_SIZE`
+3. 检查文件扩展名是否允许(jpg/png/gif)
+
+### Q: 如何备份数据库？
+```bash
+# SQLite
+cp instance/cats.db instance/backup_$(date +%Y%m%d).db
+
+# PostgreSQL
+pg_dump -U username -d dbname > backup_$(date +%Y%m%d).sql
 ```
 
 ## 🤝 参与贡献

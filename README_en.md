@@ -159,7 +159,13 @@ SECRET_KEY=your-secret-key
 DATABASE_URL=postgresql://user:pass@localhost/prod_db
 ```
 
-## 📚 Developer Documentation
+## 🖼️ Screenshots
+
+![Homepage](static/screenshots/home.png)
+![Cat Details](static/screenshots/cat_detail.png)
+![Admin Panel](static/screenshots/admin.png)
+
+##  Developer Documentation
 
 ### Project Structure
 ```
@@ -275,6 +281,27 @@ pytest --cov=app tests/
 
 # Test monitoring endpoint
 curl http://localhost:5000/metrics
+```
+
+## ❓ FAQ
+
+### Q: How to reset admin password?
+```bash
+flask reset-password <username> <new_password>
+```
+
+### Q: Image upload fails?
+1. Check `static/uploads` directory permissions
+2. Confirm image size < configured `MAX_IMAGE_SIZE`
+3. Check file extension is allowed (jpg/png/gif)
+
+### Q: How to backup database?
+```bash
+# SQLite
+cp instance/cats.db instance/backup_$(date +%Y%m%d).db
+
+# PostgreSQL
+pg_dump -U username -d dbname > backup_$(date +%Y%m%d).sql
 ```
 
 ## 🤝 How to Contribute
