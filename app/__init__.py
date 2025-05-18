@@ -1,11 +1,23 @@
 
-from flask import Flask, request
+from flask import Flask as BaseFlask, request
+from typing import Any, Optional, TypeVar, cast
+from werkzeug.wrappers import Response as BaseResponse
 from flask_sqlalchemy import SQLAlchemy
-from flask_caching import Cache
-from flask_login import LoginManager
-from flask_wtf.csrf import CSRFProtect
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from .extensions import db, cache, login_manager, csrf, limiter
+from .services.cat_service import CatService
+from .services.user_service import UserService
+
+# 自定义Flask类添加类型注解
+class Flask(BaseFlask):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.db: SQLAlchemy
+        self.cat_service: CatService
+        self.user_service: UserService
+
+class Response(BaseResponse):
+    pass
+
 from sentry_sdk.integrations.flask import FlaskIntegration
 import sentry_sdk
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -15,17 +27,13 @@ import time
 from .config import Config
 import os
 
-db = SQLAlchemy()
-cache = Cache()
-login_manager = LoginManager()
-csrf = CSRFProtect()
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
-)
+# 确保类型检查器知道这是我们的自定义类
+T = TypeVar('T', bound=BaseFlask)
+def create_flask_app(cls: type[T], *args: Any, **kwargs: Any) -> T:
+    return cast(T, cls(*args, **kwargs))
 
 def create_app(config_class=Config):
-    app = Flask(__name__, 
+    app = create_flask_app(Flask, __name__,
               template_folder=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'templates'),
               static_folder=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static'))
     app.config.from_object(config_class)
@@ -64,7 +72,7 @@ def create_app(config_class=Config):
     
     # 初始化扩展
     db.init_app(app)
-    app.db = db  # 使db实例可通过app访问
+    app.db = db  # type: ignore  # 使db实例可通过app访问
     cache.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
@@ -83,7 +91,7 @@ def create_app(config_class=Config):
     from app.core.health_check import EnvironmentChecker
     health_checker = EnvironmentChecker(app)
     health_checker.register_cli_commands()
-    login_manager.login_view = 'auth.login'
+    login_manager.login_view = 'auth.login'  # type: ignore
     
     # 代理设置
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
@@ -104,8 +112,8 @@ def create_app(config_class=Config):
         with app.app_context():
             from app.services.cat_service import CatService
             from app.services.user_service import UserService
-            app.cat_service = CatService(db)
-            app.user_service = UserService(db)
+            app.cat_service = CatService(db)  # type: ignore
+            app.user_service = UserService(db)  # type: ignore
             app.logger.info("服务初始化成功")
     except Exception as e:
         app.logger.error(f"服务初始化失败: {str(e)}")
