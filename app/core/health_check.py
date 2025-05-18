@@ -66,13 +66,12 @@ class EnvironmentChecker:
             # 获取覆盖率报告
             cov.json_report()
             data = cov.get_data()
-            measured_files = data.measured_files()
             
             # 要求核心模块覆盖率>80%
             core_modules = ['app/routes', 'app/services']
             for mod in core_modules:
-                file_coverage = data.file_data(mod)
-                if file_coverage and file_coverage.summary.percent_covered < 80:
+                coverage_data = data.line_counts(mod)
+                if coverage_data and coverage_data[0]/coverage_data[1] < 0.8:
                     return False
                     
             return True
