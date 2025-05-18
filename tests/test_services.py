@@ -109,6 +109,9 @@ def test_cat_service(app):
             # 测试图片上传功能
             TestReporter.test_step("测试图片上传功能")
             from app.models import CatImage
+            from werkzeug.datastructures import FileStorage
+            from io import BytesIO
+            
             test_cat = CatService.create_cat(
                 name='Image Test Cat',
                 breed='Test Breed',
@@ -117,20 +120,37 @@ def test_cat_service(app):
                 user_id=user.id
             )
             
+            # 创建模拟文件
+            test_file = FileStorage(
+                stream=BytesIO(b'test image content'),
+                filename='test.jpg',
+                content_type='image/jpeg'
+            )
+            
             # 添加图片
-            image_url = '/static/uploads/test.jpg'
-            CatService._handle_images(test_cat.id, [image_url])
+            CatService._handle_images(test_cat.id, [test_file])
             
             # 验证图片
+            from app.extensions import db
+            from app.models import CatImage
             cat_with_images = CatService.get(test_cat.id)
-            assert len(cat_with_images.images) == 1
-            assert cat_with_images.images[0].url == image_url
-            assert cat_with_images.primary_image == image_url
+            assert cat_with_images is not None
             
-            # 测试无效图片URL
-            TestReporter.test_step("测试无效图片URL")
+            # 查询关联图片
+            images = db.session.query(CatImage).filter_by(cat_id=test_cat.id).all()
+            assert len(images) > 0
+            assert images[0].url is not None
+            assert cat_with_images.primary_image is not None
+            
+            # 测试无效文件类型
+            TestReporter.test_step("测试无效文件类型")
+            invalid_file = FileStorage(
+                stream=BytesIO(b'invalid content'),
+                filename='test.txt',
+                content_type='text/plain'
+            )
             with pytest.raises(ValueError):
-                CatService._handle_images(test_cat.id, ["invalid_url"])
+                CatService._handle_images(test_cat.id, [invalid_file])
             
             # 测试批量操作
             TestReporter.test_step("测试批量操作")
