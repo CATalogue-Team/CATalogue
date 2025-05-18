@@ -22,10 +22,10 @@ def prevent_self_operation(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         logger.debug(f"执行prevent_self_operation检查，参数: {kwargs}")
-        # 检查参数中的id或user_id是否匹配当前用户
+        # 检查参数中的id或user_id是否匹配当前用户或用户未登录
         target_id = kwargs.get('user_id') or kwargs.get('id')
-        if target_id and str(target_id) == str(current_user.id):
-            logger.warning("检测到管理员自我操作尝试")
+        if not current_user.is_authenticated or (target_id and str(target_id) == str(current_user.id)):
+            logger.warning("检测到管理员自我操作尝试或未登录用户")
             flash('不能对自己执行此操作', 'danger')
             return redirect(url_for('admin.UserCRUD_list'))
         return f(*args, **kwargs)

@@ -1,28 +1,43 @@
+from unittest.mock import patch
 from tests.base import BaseTestCase
 from app.decorators import prevent_self_operation
 from flask import json
 
 class TestDecorators(BaseTestCase):
-    def test_prevent_self_operation(self):
-        def dummy_func(user_id):
-            return user_id
-            
-        decorated_func = prevent_self_operation(dummy_func)
+    def test_prevent_self_operation_logic(self):
+        from app.decorators import prevent_self_operation
         
-        # 创建并登录测试用户
-        test_user = self.create_test_user(username='test1', password='pass1')
-        self.login(username='test1', password='pass1')
+        # 测试装饰器内部逻辑
+        mock_func = lambda **kwargs: kwargs
+        decorated_func = prevent_self_operation(mock_func)
         
-        # 在请求上下文中测试
-        with self.client:
-            # 设置请求JSON数据
-            self.client.environ_base['CONTENT_TYPE'] = 'application/json'
-            self.client.environ_base['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest'
+        # 模拟current_user
+        class MockUser:
+            def __init__(self, id):
+                self.id = id
+                self.is_authenticated = id is not None  # None表示未登录用户
+        
+        # 创建完整的请求上下文并mock重定向
+        with self.app.test_request_context(), \
+             patch('app.decorators.redirect') as mock_redirect, \
+             patch('app.decorators.url_for') as mock_url_for:
             
-            # 相同用户ID应抛出错误
-            with self.assertRaises(ValueError):
-                decorated_func(user_id=1)
+            mock_url_for.return_value = '/dummy-url'
+            mock_redirect.return_value = 'redirect-response'
+            
+            # 场景1: 相同用户ID
+            with patch('app.decorators.current_user', MockUser(1)):
+                response = decorated_func(user_id=1)
+                self.assertEqual(response, 'redirect-response')
+                mock_redirect.assert_called_once_with('/dummy-url')
+                    
+            # 场景2: 不同用户ID
+            with patch('app.decorators.current_user', MockUser(2)):
+                result = decorated_func(user_id=1)
+                self.assertEqual(result, {'user_id': 1})
                 
-            # 不同用户ID应正常返回
-            result = decorated_func(2)
-            self.assertEqual(result, 2)
+            # 场景3: 未登录用户
+            with patch('app.decorators.current_user', MockUser(None)):
+                response = decorated_func(user_id=1)
+                self.assertEqual(response, 'redirect-response')
+                mock_redirect.assert_called_with('/dummy-url')
