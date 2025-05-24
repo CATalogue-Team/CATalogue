@@ -1,5 +1,5 @@
 
-from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
+from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from .. import db, limiter
 from ..services.user_service import UserService
@@ -12,61 +12,79 @@ bp = Blueprint('auth', __name__)
 def login():
     from ..forms import LoginForm
     form = LoginForm()
-    current_app.logger.debug(f"登录表单验证状态: {form.validate_on_submit()}")
-    current_app.logger.debug(f"表单错误: {form.errors}")
     
+    # API请求处理
+    if request.method == 'POST' and request.is_json:
+        data = request.get_json()
+        if not data or not data.get('username') or not data.get('password'):
+            return jsonify({'error': 'Invalid credentials'}), 401
+            
+        user = UserService.get_user_by_username(data['username'])
+        if not user or not user.check_password(data['password']):
+            return jsonify({'error': 'Invalid credentials'}), 401
+            
+        if user.status != 'approved':
+            return jsonify({'error': 'Account not approved'}), 403
+            
+        login_user(user)
+        return jsonify({'message': 'Login successful'}), 200
+    
+    # 页面请求处理
     if form.validate_on_submit():
-        current_app.logger.debug("表单验证通过")
+        if not form.username.data or not form.password.data:
+            flash('请输入用户名和密码', 'danger')
+            return redirect(url_for('auth.login'))
+            
         user = UserService.get_user_by_username(form.username.data)
-        current_app.logger.debug(f"找到用户: {user is not None}")
         
         if user and user.check_password(form.password.data):
-            current_app.logger.debug("密码验证通过")
             if user.status != 'approved':
-                current_app.logger.warning(f"用户未审核: {user.username}")
                 flash('您的账号尚未通过审核', 'warning')
                 return redirect(url_for('auth.login'))
             
-            current_app.logger.info(f"用户登录成功: {user.username}")
             login_user(user, remember=form.remember.data)
-            return redirect(url_for('main.home'))
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('main.home'))
         
-        if not user:
-            current_app.logger.warning(f"用户名不存在: {form.username.data}")
-            flash('用户名不存在', 'danger')
-        else:
-            current_app.logger.warning(f"密码错误: {form.username.data}")
-            flash('密码错误', 'danger')
+        flash('用户名或密码错误', 'danger')
     
     return render_template('login.html', form=form)
 
-@bp.route('/logout')
+@bp.route('/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('main.home'))
+    if request.is_json:
+        return jsonify({'message': 'Logout successful'}), 200
+    return '', 200
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
-    form = RegisterForm()
-    if form.validate_on_submit():
+    from flask import jsonify
+    
+    if request.method == 'POST':
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid request'}), 400
+            
         try:
-            UserService.create_user(
-                password=form.password.data,
-                username=form.username.data,
-                is_admin=form.is_admin.data,
+            user = UserService.create_user(
+                password=data.get('password'),
+                username=data.get('username'),
+                is_admin=data.get('is_admin', False),
                 status='pending'
             )
-            flash('注册成功，请等待管理员审核', 'success')
-            return redirect(url_for('auth.login'))
+            return jsonify({
+                'message': 'Registration successful',
+                'user_id': user.id
+            }), 201
         except ValueError as e:
-            flash(f'注册失败: {str(e)}', 'danger')
             current_app.logger.error(f"用户注册失败: {str(e)}")
+            return jsonify({'error': str(e)}), 400
         except Exception as e:
-            flash(f'注册过程中发生错误: {str(e)}', 'danger')
             current_app.logger.error(f"用户注册异常: {str(e)}")
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f"{getattr(form, field).label.text}错误: {error}", 'danger')
+            return jsonify({'error': 'Registration failed'}), 500
+    
+    # GET请求返回注册页面
+    form = RegisterForm()
     return render_template('register.html', form=form)

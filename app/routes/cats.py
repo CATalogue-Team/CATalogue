@@ -1,7 +1,8 @@
 
-from flask import Blueprint, render_template, redirect, url_for, request, current_app, flash
+from flask import Blueprint, render_template, redirect, url_for, request, current_app, flash, Response
+from pathlib import Path
 from flask_login import login_required, current_user
-from .. import limiter
+from .. import limiter, db
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
@@ -11,7 +12,7 @@ from ..forms import CatForm
 from ..decorators import admin_required
 from .base_crud import crud_blueprint
 
-bp, crud_route = crud_blueprint('cats', __name__, url_prefix='/cat')
+bp, crud_route = crud_blueprint('cats', __name__, url_prefix='/cats')
 
 # 猫咪搜索页
 @bp.route('/search')
@@ -110,10 +111,11 @@ class CatCRUD:
         """删除前的处理"""
         try:
             # 删除关联图片
-            for image in item.images:
-                image_path = os.path.join(current_app.static_folder, image.url.lstrip('/static/'))
-                if os.path.exists(image_path):
-                    os.remove(image_path)
+            for image in item.images:  # type: ignore
+                static_folder = str(current_app.static_folder)
+                image_path = Path(static_folder) / image.url.lstrip('/static/')
+                if image_path.exists():
+                    image_path.unlink()
                     current_app.logger.info(f"已删除图片文件: {image_path}")
             
             # 删除上传目录中的文件
@@ -134,7 +136,7 @@ class CatCRUD:
 @login_required
 @admin_required
 @limiter.limit("5 per minute")
-def manage_images(cat_id):
+def manage_images(cat_id) -> Response:
     """管理猫咪图片"""
     cat = CatService.get(cat_id)
     if not cat:
@@ -149,7 +151,7 @@ def manage_images(cat_id):
         try:
             image_id = int(image_id)
             # 重置所有图片为非主图
-            for img in cat.images:
+            for img in cat.images:  # type: ignore
                 img.is_primary = (img.id == image_id)
             db.session.commit()
             flash('主图设置成功', 'success')
@@ -163,7 +165,8 @@ def manage_images(cat_id):
             image = next((img for img in cat.images if img.id == image_id), None)
             if image:
                 # 删除文件
-                image_path = os.path.join(current_app.static_folder, image.url.lstrip('/static/'))
+                static_folder = str(current_app.static_folder)
+                image_path = Path(static_folder) / image.url.lstrip('/static/')
                 if os.path.exists(image_path):
                     os.remove(image_path)
                 # 删除记录
@@ -176,8 +179,22 @@ def manage_images(cat_id):
         return redirect(url_for('cats.admin__edit', id=cat_id))
 
 # 权限控制
-for endpoint in bp.view_functions:
+from functools import wraps
+
+def add_login_required(view_func):
+    @wraps(view_func)
+    def wrapped_view(*args, **kwargs):
+        return login_required(view_func)(*args, **kwargs)
+    return wrapped_view
+
+def add_admin_required(view_func):
+    @wraps(view_func)
+    def wrapped_view(*args, **kwargs):
+        return admin_required(login_required(view_func))(*args, **kwargs)
+    return wrapped_view
+
+for endpoint, view_func in bp.view_functions.items():
     if endpoint != 'detail':  # 详情页不需要admin权限
-        bp.view_functions[endpoint] = login_required(admin_required(bp.view_functions[endpoint]))
+        bp.view_functions[endpoint] = add_admin_required(view_func)
     else:
-        bp.view_functions[endpoint] = login_required(bp.view_functions[endpoint])
+        bp.view_functions[endpoint] = add_login_required(view_func)

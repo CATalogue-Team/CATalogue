@@ -90,7 +90,8 @@ def test_cat_service(app):
             
             # 测试查询
             TestReporter.log_step("测试查询猫咪")
-            found_cat = CatService.get(cat.id)
+            from app.models import Cat
+            found_cat = CatService.get(Cat, cat.id)
             assert found_cat == cat
             
             # 测试更新
@@ -103,7 +104,7 @@ def test_cat_service(app):
             TestReporter.log_step("测试删除猫咪")
             delete_result = CatService.delete(cat.id)
             assert delete_result is True
-            deleted_cat = CatService.get(cat.id)
+            deleted_cat = CatService.get(Cat, cat.id)
             assert deleted_cat is None
             
             # 测试图片上传功能

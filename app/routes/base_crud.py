@@ -88,7 +88,24 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
                             flash('不能修改自己的管理员状态', 'danger')
                             return redirect(url_for(f'{name}.admin_{model_name}_list'))
                         
-                        service.update(service.model, id, **form.data)
+                        # 处理图片上传
+                        images = []
+                        if hasattr(form, 'images'):
+                            if form.images.data:
+                                try:
+                                    images = [f for f in form.images.data if hasattr(f, 'filename')]
+                                except TypeError:
+                                    if hasattr(form.images.data, 'filename'):
+                                        images = [form.images.data]
+
+                        # 提取有效数据
+                        data = {k:v for k,v in form.data.items() 
+                               if k not in ['csrf_token', 'submit', 'images']}
+                        
+                        if hasattr(service, 'update_cat'):
+                            service.update_cat(id, images=images, **data)
+                        else:
+                            service.update(service.model, id, **data)
                         from flask import flash
                         flash(f'{model_name.capitalize()}更新成功!', 'success')
                         

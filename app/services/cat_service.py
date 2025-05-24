@@ -17,9 +17,11 @@ class CatService(BaseService):
     model = Cat  # 定义模型类
     
     @classmethod
-    def get(cls, id: int) -> Optional[Cat]:
+    def get(cls, model: Type[Cat] = None, id: int = None) -> Optional[Cat]:
         """获取单个猫咪信息"""
-        return super().get(cls.model, id)
+        if model is None:
+            model = cls.model
+        return super().get(model, id)
     
     @classmethod
     def get_all(cls, model: Type[Cat] = None) -> List[Cat]:

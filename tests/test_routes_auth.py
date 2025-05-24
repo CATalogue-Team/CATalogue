@@ -4,9 +4,9 @@ from tests.base import BaseTestCase
 
 class TestAuthRoutes(BaseTestCase):
     @parameterized.expand([
-        ('/login', 'POST', {'username': 'test', 'password': 'test'}, 200),
+        ('/login', 'POST', {'username': 'test', 'password': 'test'}, 401),  # 需要有效凭证
         ('/register', 'POST', {'username': 'new', 'password': 'new'}, 201),
-        ('/logout', 'POST', {}, 200),
+        ('/logout', 'POST', {}, 302),  # 登出后重定向
         ('/invalid', 'GET', {}, 404)
     ])
     def test_auth_endpoints(self, url, method, data, expected_status):
