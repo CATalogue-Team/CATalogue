@@ -1,8 +1,6 @@
 
-from typing import Type, TypeVar, Optional, List, Any
 from .. import db
-
-T = TypeVar('T', bound=db.Model)
+from flask_sqlalchemy.pagination import Pagination
 
 class BaseService:
     """基础服务类"""
@@ -10,17 +8,17 @@ class BaseService:
         self.db = db
     
     @staticmethod
-    def get(model: Type[T], id: int) -> Optional[T]:
+    def get(model, id: int):
         """获取单个记录"""
-        return model.query.get(id)
+        return db.session.get(model, id)
     
     @staticmethod
-    def get_all(model: Type[T]) -> List[T]:
+    def get_all(model):
         """获取所有记录"""
         return model.query.all()
     
     @staticmethod
-    def create(model: Type[T], **kwargs) -> T:
+    def create(model, **kwargs):
         """创建记录"""
         obj = model(**kwargs)
         db.session.add(obj)
@@ -28,9 +26,9 @@ class BaseService:
         return obj
     
     @staticmethod
-    def update(model: Type[T], id: int, **kwargs) -> Optional[T]:
+    def update(model, id: int, **kwargs):
         """更新记录"""
-        obj = model.query.get(id)
+        obj = db.session.get(model, id)
         if not obj:
             return None
             
@@ -41,9 +39,9 @@ class BaseService:
         return obj
     
     @staticmethod
-    def delete(model: Type[T], id: int) -> bool:
+    def delete(model, id: int) -> bool:
         """删除记录"""
-        obj = model.query.get(id)
+        obj = db.session.get(model, id)
         if not obj:
             return False
             
@@ -52,7 +50,7 @@ class BaseService:
         return True
         
     @staticmethod
-    def get_paginated(model: Type[T], page=1, per_page=None, **filters) -> 'flask_sqlalchemy.Pagination':
+    def get_paginated(model, page=1, per_page=None, **filters):
         """
         分页获取记录
         参数:

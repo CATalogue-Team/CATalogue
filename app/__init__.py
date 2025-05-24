@@ -4,7 +4,7 @@ from typing import Any, Optional, TypeVar, cast
 from werkzeug.wrappers import Response as BaseResponse
 from flask_sqlalchemy import SQLAlchemy
 from .extensions import db, cache, login_manager, csrf, limiter
-from .services.cat_service import CatService
+from app.services.cat_service import CatService
 from .services.user_service import UserService
 
 # 自定义Flask类添加类型注解

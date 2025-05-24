@@ -1,6 +1,6 @@
-
-from typing import List, Optional, Union, Type
-from datetime import datetime
+from typing import List, Optional, Type, cast
+from datetime import datetime, timezone
+from sqlalchemy.orm import Query
 from .. import db
 from ..models import Cat, User, CatImage
 from werkzeug.datastructures import FileStorage
@@ -14,14 +14,15 @@ class CatService(BaseService):
     def __init__(self, db):
         super().__init__(db)
         
-    model = Cat  # 定义模型类
+    model: Type[Cat] = Cat  # 定义模型类
     
     @classmethod
-    def get(cls, model: Type[Cat] = None, id: int = None) -> Optional[Cat]:
+    def get(cls, model: Type[Cat] = None, id: int = None) -> Optional[Cat]:  # type: ignore
         """获取单个猫咪信息"""
-        if model is None:
-            model = cls.model
-        return super().get(model, id)
+        model = model or cls.model
+        if id is None:
+            return None
+        return cast(Optional[Cat], super().get(model, id))
     
     @classmethod
     def get_all(cls, model: Type[Cat] = None) -> List[Cat]:
@@ -31,7 +32,10 @@ class CatService(BaseService):
     @classmethod
     def get_cat(cls, cat_id: int) -> Optional[Cat]:
         """获取单个猫咪信息(包含主人信息)"""
-        return cls.model.query.options(db.joinedload(Cat.owner)).get(cat_id)
+        from sqlalchemy.orm import joinedload
+        from ..models import Cat
+        cat = db.session.get(Cat, cat_id, options=[joinedload(Cat.owner)])  # type: ignore
+        return cat
     
     @classmethod
     def get_all_cats(cls) -> List[Cat]:
@@ -39,13 +43,34 @@ class CatService(BaseService):
         return cls.model.query.order_by(Cat.updated_at.desc()).all()
         
     @classmethod
-    def get_paginated_cats(cls, page=1, per_page=10, **filters) -> 'flask_sqlalchemy.Pagination':
-        """分页获取猫咪信息"""
+    def get_paginated_cats(cls, page: int = 1, per_page: int = 10, **filters) -> dict:
+        """分页获取猫咪信息
+        返回格式:
+        {
+            'items': List[Cat],  # 当前页数据
+            'total': int,         # 总记录数
+            'pages': int,         # 总页数
+            'current_page': int,  # 当前页码
+            'per_page': int       # 每页数量
+        }
+        """
         query = cls.model.query.order_by(Cat.updated_at.desc())
         for key, value in filters.items():
             if hasattr(cls.model, key):
                 query = query.filter(getattr(cls.model, key) == value)
-        return query.paginate(page=page, per_page=per_page, error_out=False)
+        
+        # 手动实现分页
+        total = query.count()
+        items = query.offset((page - 1) * per_page).limit(per_page).all()
+        pages = (total + per_page - 1) // per_page
+        
+        return {
+            'items': items,
+            'total': total,
+            'pages': pages,
+            'current_page': page,
+            'per_page': per_page
+        }
         
     @staticmethod
     def get_recent_cats(limit: int = 3) -> List[Cat]:
@@ -53,98 +78,104 @@ class CatService(BaseService):
         return Cat.query.order_by(Cat.created_at.desc()).limit(limit).all()
     
     @classmethod
-    def create(cls, images: List[FileStorage] = None, **kwargs) -> Cat:
+    def create(cls, images: Optional[List[FileStorage]] = None, **kwargs) -> Cat:
         """创建猫咪信息(支持多图上传)"""
-        if 'user_id' in kwargs and not User.query.get(kwargs['user_id']):
-            raise ValueError("用户不存在")
+        if 'user_id' in kwargs:
+            user_id = kwargs['user_id']
+            if not db.session.get(User, user_id):
+                raise ValueError(f"用户ID {user_id} 不存在")
             
         kwargs.update({
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
+            'created_at': datetime.now(timezone.utc),
+            'updated_at': datetime.now(timezone.utc)
         })
         
         cat = super().create(cls.model, **kwargs)
         
-        # 处理图片上传
         if images:
-            cls._handle_images(cat, images)
+            cls._handle_images(cat.id, images)
             
         return cat
     
     @classmethod
-    def _handle_images(cls, cat: Cat, images: List[FileStorage]) -> None:
+    def _handle_images(cls, cat_id: int, images: List[FileStorage]) -> None:
         """处理猫咪图片上传"""
-        for i, image in enumerate(images):
-            if not image:
-                continue
-                
-            filename = secure_filename(image.filename)
-            save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            image.save(save_path)
+        if not images:
+            return
+
+        try:
+            for i, image in enumerate(images):
+                if not image or not image.filename or not image.content_type:
+                    continue
+
+                if not image.content_type.startswith('image/'):
+                    raise ValueError("只允许上传图片文件")
+
+                filename = secure_filename(str(image.filename))
+                if not filename:
+                    continue
+                    
+                upload_folder = current_app.config.get('UPLOAD_FOLDER')
+                if not upload_folder:
+                    raise ValueError("上传目录未配置")
+                    
+                save_path = os.path.join(str(upload_folder), filename)
+                image.save(save_path)
+
+                db.session.add(CatImage(
+                    url=f"/static/uploads/{filename}",
+                    is_primary=(i == 0),
+                    cat_id=cat_id,
+                    created_at=datetime.now(timezone.utc)
+                ))
             
-            # 第一张图片设为主图
-            is_primary = i == 0
-            # 生成并规范化图片URL
-            image_url = f"/static/uploads/{filename}"
-            current_app.logger.debug(f"生成的图片URL: {image_url}")
-            
-            db.session.add(CatImage(
-                url=image_url,
-                is_primary=is_primary,
-                cat_id=cat.id
-            ))
-            
-            current_app.logger.debug(f"保存图片URL: {image_url}")
-        
-        db.session.commit()
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"图片上传失败: {str(e)}")
+            raise
     
     @classmethod
-    def update(cls, id: int, images: List[FileStorage] = None, **kwargs) -> Optional[Cat]:
-        """
-        更新猫咪信息(支持多图上传)
-        改进点：
-        1. 完整事务管理
-        2. 合并图片处理
-        3. 增强错误处理
-        """
+    def update(cls, id: int, images: Optional[List[FileStorage]] = None, **kwargs) -> Optional[Cat]:
+        """更新猫咪信息"""
         try:
-            cat = cls.model.query.get(id)
+            cat = db.session.get(cls.model, id)
             if not cat:
                 return None
                 
-            # 开始事务
             db.session.begin_nested()
             
-            # 更新基础信息
             for key, value in kwargs.items():
                 if hasattr(cat, key):
                     setattr(cat, key, value)
-            cat.updated_at = datetime.utcnow()
+            cat.updated_at = datetime.now(timezone.utc)
             
-            # 处理图片上传
             if images:
-                # 先删除旧图片
-                for image in cat.images:
-                    image_path = os.path.join(current_app.static_folder, image.url.lstrip('/static/'))
+                for image in list(cat.images if cat.images else []):  # type: ignore
+                    static_folder = current_app.static_folder
+                    if not static_folder or not image.url:
+                        continue
+                    image_path = os.path.join(str(static_folder), str(image.url).lstrip('/static/'))
                     if os.path.exists(image_path):
-                        os.remove(image_path)
+                        try:
+                            os.remove(image_path)
+                        except Exception as e:
+                            current_app.logger.error(f"删除图片文件失败: {str(e)}")
                     db.session.delete(image)
                 
-                # 添加新图片
                 for i, image in enumerate(images):
                     if not image:
                         continue
                         
-                    filename = secure_filename(image.filename)
-                    save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+                    filename = secure_filename(str(image.filename))
+                    upload_folder = current_app.config.get('UPLOAD_FOLDER')
+                    if not upload_folder:
+                        raise ValueError("上传目录未配置")
+                    save_path = os.path.join(str(upload_folder), filename)
                     image.save(save_path)
                     
-                    # 生成并规范化图片URL
-                    image_url = f"/static/uploads/{filename}"
-                    current_app.logger.debug(f"生成的图片URL: {image_url}")
-                    
                     db.session.add(CatImage(
-                        url=image_url,
+                        url=f"/static/uploads/{filename}",
                         is_primary=(i == 0),
                         cat_id=cat.id
                     ))
@@ -159,39 +190,41 @@ class CatService(BaseService):
     
     @classmethod
     def delete(cls, id: int) -> bool:
-        """删除猫咪信息(包含关联图片处理)"""
+        """删除猫咪信息"""
         try:
-            cat = cls.model.query.get(id)
+            cat = db.session.get(cls.model, id)
             if not cat:
                 current_app.logger.warning(f"尝试删除不存在的猫咪ID: {id}")
                 return False
                 
             # 删除关联图片
-            for image in cat.images:
+            for image in list(cat.images if cat.images else []):  # type: ignore
                 try:
-                    image_path = os.path.join(current_app.static_folder, image.url.lstrip('/static/'))
-                    if os.path.exists(image_path):
-                        os.remove(image_path)
+                    if image.url:
+                        image_path = os.path.join(
+                            str(current_app.static_folder), 
+                            str(image.url).lstrip('/static/'))
+                        if os.path.exists(image_path):
+                            os.remove(image_path)
                 except Exception as e:
                     current_app.logger.error(f"删除图片文件失败: {str(e)}")
+                    continue
             
-            # 删除数据库记录
+            # 删除猫咪记录
             db.session.delete(cat)
             db.session.commit()
-            current_app.logger.info(f"成功删除猫咪ID: {id}")
             return True
             
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"删除猫咪失败(ID:{id}): {str(e)}", exc_info=True)
-            raise
+            return False
     
     @classmethod
     def create_cat(cls, user_id: int, **kwargs) -> Cat:
         """创建猫咪信息(兼容旧接口)"""
         kwargs['user_id'] = user_id
         
-        # 检查猫咪名称是否已存在
         if 'name' in kwargs and cls.model.query.filter_by(name=kwargs['name']).first():
             raise ValueError(f"猫咪名称'{kwargs['name']}'已存在")
             
@@ -208,23 +241,12 @@ class CatService(BaseService):
         return cls.delete(cat_id)
     
     @staticmethod
-    def search_cats(keyword: str = None, breed: str = None, 
-                   min_age: int = None, max_age: int = None,
-                   is_adopted: bool = None) -> List[Cat]:
-        """
-        宽搜索猫咪信息
-        参数:
-            keyword: 搜索关键词(名称或描述)
-            breed: 品种筛选
-            min_age: 最小年龄
-            max_age: 最大年龄
-            is_adopted: 领养状态
-        返回:
-            匹配的猫咪列表
-        """
+    def search_cats(keyword: Optional[str] = None, breed: Optional[str] = None, 
+                   min_age: Optional[int] = None, max_age: Optional[int] = None,
+                   is_adopted: Optional[bool] = None) -> List[Cat]:
+        """搜索猫咪信息"""
         query = Cat.query
         
-        # 关键词搜索(名称或描述)
         if keyword:
             query = query.filter(
                 db.or_(
@@ -233,17 +255,14 @@ class CatService(BaseService):
                 )
             )
         
-        # 品种筛选
         if breed:
             query = query.filter(Cat.breed.ilike(f'%{breed}%'))
             
-        # 年龄范围
         if min_age is not None:
             query = query.filter(Cat.age >= min_age)
         if max_age is not None:
             query = query.filter(Cat.age <= max_age)
             
-        # 领养状态
         if is_adopted is not None:
             query = query.filter(Cat.is_adopted == is_adopted)
             
@@ -264,15 +283,11 @@ class CatService(BaseService):
         """校验并修复数据库中的图片URL"""
         from ..models import CatImage
         invalid_urls = []
-        current_app.logger.info("开始校验图片URL...")
         
         try:
             images = CatImage.query.all()
-            current_app.logger.info(f"共找到{len(images)}条图片记录")
-            
             for image in images:
                 if not image.url:
-                    current_app.logger.warning(f"图片ID {image.id} URL为空")
                     continue
                     
                 if image.url.count('/static/uploads/') > 1:
@@ -280,11 +295,7 @@ class CatService(BaseService):
                     image.url = '/static/uploads/' + image.url.split('/static/uploads/')[-1]
                     db.session.commit()
                     invalid_urls.append((original_url, image.url))
-                    current_app.logger.warning(f"修正重复路径: {original_url} -> {image.url}")
-                else:
-                    current_app.logger.debug(f"图片ID {image.id} URL格式正确: {image.url}")
                     
-            current_app.logger.info(f"校验完成，共修正{len(invalid_urls)}条记录")
             return invalid_urls
             
         except Exception as e:

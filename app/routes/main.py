@@ -1,7 +1,7 @@
 
 from flask import Blueprint, render_template, redirect, url_for, jsonify
 from flask_login import login_required
-from ..services.cat_service import CatService
+from app.services.cat_service import CatService
 
 bp = Blueprint('main', __name__)
 
@@ -28,9 +28,9 @@ def test_pagination():
     """测试分页配置"""
     from flask import current_app
     page_size = current_app.config.get('ITEMS_PER_PAGE', 10)
-    pagination = CatService.get_paginated_cats(page=1)
+    cats = CatService.get_recent_cats(limit=page_size)
     return jsonify({
         'config_page_size': page_size,
-        'actual_page_size': len(pagination.items),
-        'total_pages': pagination.pages
+        'actual_page_size': len(cats),
+        'total_pages': 1
     })

@@ -14,6 +14,8 @@
 - [Contribution Guide](CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md) 
 - [Security Policy](SECURITY.md)
+- [Development Guidelines (中文)](DEVELOPMENT_GUIDELINES_zh.md)
+- [Development Guidelines (English)](DEVELOPMENT_GUIDELINES_en.md)
 
 ## Project Overview
 
