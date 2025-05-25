@@ -1,10 +1,17 @@
 
+from typing import Type, TypeVar, Optional
 from .. import db
 from flask_sqlalchemy.pagination import Pagination
 
+ModelType = TypeVar('ModelType')
+
 class BaseService:
     """基础服务类"""
-    def __init__(self, db=None):
+    def __init__(self, db):
+        if db is None:
+            raise ValueError("db参数不能为None")
+        if not hasattr(db, 'app'):
+            raise ValueError("db对象必须包含app属性")
         self.db = db
     
     @staticmethod
@@ -17,26 +24,26 @@ class BaseService:
         """获取所有记录"""
         return model.query.all()
     
-    @staticmethod
-    def create(model, **kwargs):
+    def create(self, model: Type['ModelType'], **kwargs) -> 'ModelType':
         """创建记录"""
-        obj = model(**kwargs)
-        db.session.add(obj)
-        db.session.commit()
-        return obj
+        with self.db.app.app_context():
+            obj = model(**kwargs)
+            self.db.session.add(obj)
+            self.db.session.commit()
+            return obj
     
-    @staticmethod
-    def update(model, id: int, **kwargs):
+    def update(self, model: Type['ModelType'], id: int, **kwargs) -> Optional['ModelType']:
         """更新记录"""
-        obj = db.session.get(model, id)
-        if not obj:
-            return None
-            
-        for key, value in kwargs.items():
-            setattr(obj, key, value)
-            
-        db.session.commit()
-        return obj
+        with self.db.app.app_context():
+            obj = self.db.session.get(model, id)
+            if not obj:
+                return None
+                
+            for key, value in kwargs.items():
+                setattr(obj, key, value)
+                
+            self.db.session.commit()
+            return obj
     
     @staticmethod
     def delete(model, id: int) -> bool:

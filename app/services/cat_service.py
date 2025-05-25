@@ -25,25 +25,23 @@ class CatService(BaseService):
         return super().get(model, id)  # type: ignore
     
     @classmethod
-    def get_all(cls, model: Type[Cat] = None) -> List[Cat]:
+    def get_all(cls, model: Optional[Type[Cat]] = None) -> List[Cat]:
         """获取所有猫咪信息"""
-        return super().get_all(cls.model)
+        return super().get_all(model or cls.model)
     
-    @classmethod
-    def get_cat(cls, cat_id: int) -> Optional[Cat]:
-        """获取单个猫咪信息(包含主人信息)"""
-        from sqlalchemy.orm import joinedload
-        from ..models import Cat
-        cat = db.session.get(Cat, cat_id, options=[joinedload(Cat.owner)])  # type: ignore
-        return cat
+    def get_cat(self, cat_id: int) -> Optional[Cat]:
+        """获取单个猫咪信息"""
+        with self.db.app.app_context():
+            return self.db.session.get(Cat, cat_id)
     
-    @classmethod
-    def get_all_cats(cls) -> List[Cat]:
+    def get_all_cats(self) -> List[Cat]:
         """获取所有猫咪信息(按更新时间排序)"""
-        return cls.model.query.order_by(Cat.updated_at.desc()).all()
+        if not hasattr(self.db, 'session'):
+            raise ValueError("db对象必须包含session属性")
+        with self.db.app.app_context():
+            return self.db.session.query(Cat).order_by(Cat.updated_at.desc()).all()
         
-    @classmethod
-    def get_paginated_cats(cls, page: int = 1, per_page: int = 10, **filters) -> dict:
+    def get_paginated_cats(self, page: int = 1, per_page: int = 10, **filters) -> dict:
         """分页获取猫咪信息
         返回格式:
         {
@@ -54,23 +52,23 @@ class CatService(BaseService):
             'per_page': int       # 每页数量
         }
         """
-        query = cls.model.query.order_by(Cat.updated_at.desc())
-        for key, value in filters.items():
-            if hasattr(cls.model, key):
-                query = query.filter(getattr(cls.model, key) == value)
-        
-        # 手动实现分页
-        total = query.count()
-        items = query.offset((page - 1) * per_page).limit(per_page).all()
-        pages = (total + per_page - 1) // per_page
-        
-        return {
-            'items': items,
-            'total': total,
-            'pages': pages,
-            'current_page': page,
-            'per_page': per_page
-        }
+        with self.db.app.app_context():
+            query = self.db.session.query(Cat).order_by(Cat.updated_at.desc())
+            for key, value in filters.items():
+                if hasattr(Cat, key):
+                    query = query.filter(getattr(Cat, key) == value)
+            
+            total = query.count()
+            items = query.offset((page - 1) * per_page).limit(per_page).all()
+            pages = (total + per_page - 1) // per_page
+            
+            return {
+                'items': items,
+                'total': total,
+                'pages': pages,
+                'current_page': page,
+                'per_page': per_page
+            }
         
     @staticmethod
     def get_recent_cats(limit: int = 3) -> List[Cat]:
@@ -135,58 +133,58 @@ class CatService(BaseService):
             current_app.logger.error(f"图片上传失败: {str(e)}")
             raise
     
-    @classmethod
-    def update(cls, id: int, images: Optional[List[FileStorage]] = None, **kwargs) -> Optional[Cat]:
+    def update(self, id: int, images: Optional[List[FileStorage]] = None, **kwargs) -> Optional[Cat]:
         """更新猫咪信息"""
-        try:
-            cat = db.session.get(cls.model, id)
-            if not cat:
-                return None
-                
-            db.session.begin_nested()
-            
-            for key, value in kwargs.items():
-                if hasattr(cat, key):
-                    setattr(cat, key, value)
-            cat.updated_at = datetime.now(timezone.utc)
-            
-            if images:
-                for image in list(cat.images if cat.images else []):  # type: ignore
-                    static_folder = current_app.static_folder
-                    if not static_folder or not image.url:
-                        continue
-                    image_path = os.path.join(str(static_folder), str(image.url).lstrip('/static/'))
-                    if os.path.exists(image_path):
-                        try:
-                            os.remove(image_path)
-                        except Exception as e:
-                            current_app.logger.error(f"删除图片文件失败: {str(e)}")
-                    db.session.delete(image)
-                
-                for i, image in enumerate(images):
-                    if not image:
-                        continue
-                        
-                    filename = secure_filename(str(image.filename))
-                    upload_folder = current_app.config.get('UPLOAD_FOLDER')
-                    if not upload_folder:
-                        raise ValueError("上传目录未配置")
-                    save_path = os.path.join(str(upload_folder), filename)
-                    image.save(save_path)
+        with self.db.app.app_context():
+            try:
+                cat = self.db.session.get(Cat, id)
+                if not cat:
+                    return None
                     
-                    db.session.add(CatImage(
-                        url=f"/static/uploads/{filename}",
-                        is_primary=(i == 0),
-                        cat_id=cat.id
-                    ))
-            
-            db.session.commit()
-            return cat
-            
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"更新猫咪失败: {str(e)}")
-            raise
+                self.db.session.begin_nested()
+                
+                for key, value in kwargs.items():
+                    if hasattr(cat, key):
+                        setattr(cat, key, value)
+                cat.updated_at = datetime.now(timezone.utc)
+                
+                if images:
+                    for image in list(cat.images if cat.images else []):  # type: ignore
+                        static_folder = current_app.static_folder
+                        if not static_folder or not image.url:
+                            continue
+                        image_path = os.path.join(str(static_folder), str(image.url).lstrip('/static/'))
+                        if os.path.exists(image_path):
+                            try:
+                                os.remove(image_path)
+                            except Exception as e:
+                                current_app.logger.error(f"删除图片文件失败: {str(e)}")
+                        self.db.session.delete(image)
+                    
+                    for i, image in enumerate(images):
+                        if not image:
+                            continue
+                            
+                        filename = secure_filename(str(image.filename))
+                        upload_folder = current_app.config.get('UPLOAD_FOLDER')
+                        if not upload_folder:
+                            raise ValueError("上传目录未配置")
+                        save_path = os.path.join(str(upload_folder), filename)
+                        image.save(save_path)
+                        
+                        self.db.session.add(CatImage(
+                            url=f"/static/uploads/{filename}",
+                            is_primary=(i == 0),
+                            cat_id=cat.id
+                        ))
+                
+                self.db.session.commit()
+                return cat
+                
+            except Exception as e:
+                self.db.session.rollback()
+                current_app.logger.error(f"更新猫咪失败: {str(e)}")
+                raise
     
     @classmethod
     def delete(cls, id: int) -> bool:
@@ -220,25 +218,26 @@ class CatService(BaseService):
             current_app.logger.error(f"删除猫咪失败(ID:{id}): {str(e)}", exc_info=True)
             return False
     
-    @classmethod
-    def create_cat(cls, user_id: int, **kwargs) -> Cat:
+    def create_cat(self, user_id: int, **kwargs) -> Cat:
         """创建猫咪信息(兼容旧接口)"""
         kwargs['user_id'] = user_id
         
-        if 'name' in kwargs and cls.model.query.filter_by(name=kwargs['name']).first():
-            raise ValueError(f"猫咪名称'{kwargs['name']}'已存在")
-            
-        return cls.create(**kwargs)
+        with self.db.app.app_context():
+            if 'name' in kwargs and self.db.session.query(Cat).filter_by(name=kwargs['name']).first():
+                raise ValueError(f"猫咪名称'{kwargs['name']}'已存在")
+                
+            cat = super().create(Cat, **kwargs)
+            return cat
     
-    @classmethod
-    def update_cat(cls, cat_id: int, **kwargs) -> Optional[Cat]:
+    def update_cat(self, cat_id: int, update_data: dict) -> Optional[Cat]:
         """更新猫咪信息(兼容旧接口)"""
-        return cls.update(cat_id, **kwargs)
+        with self.db.app.app_context():
+            return self.update(cat_id, **update_data)
     
-    @classmethod
-    def delete_cat(cls, cat_id: int) -> bool:
+    def delete_cat(self, cat_id: int) -> bool:
         """删除猫咪信息(兼容旧接口)"""
-        return cls.delete(cat_id)
+        with self.db.app.app_context():
+            return self.delete(cat_id)
     
     @staticmethod
     def search_cats(keyword: Optional[str] = None, breed: Optional[str] = None, 

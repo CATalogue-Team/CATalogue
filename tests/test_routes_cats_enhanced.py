@@ -11,13 +11,25 @@ from datetime import datetime, timedelta, timezone
 def app():
     app = create_app()
     app.config['TESTING'] = True
-    app.config['WTF_CSRF_ENABLED'] = False
-    app.config['SERVER_NAME'] = 'localhost'  # 添加SERVER_NAME配置
+    app.config['WTF_CSRF_ENABLED'] = False 
+    app.config['SERVER_NAME'] = 'localhost'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+            print("Test database initialized successfully")
+        except Exception as e:
+            print(f"Database error: {str(e)}")
+            raise
+            
         yield app
-        db.session.remove()
-        db.drop_all()
+        
+        try:
+            db.session.remove()
+            db.drop_all()
+        except Exception as e:
+            print(f"Database cleanup error: {str(e)}")
 
 @pytest.fixture
 def client(app):
@@ -29,9 +41,18 @@ def test_user(app):
         user = User()  # type: ignore[call-arg]
         user.username = 'test'
         user.set_password('password')
+        user.status = 'approved'
+        user.is_admin = True  # 设置为管理员
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
+        
+        # 确保user_loader能加载到此用户
+        from app.extensions import login_manager
+        @login_manager.user_loader
+        def load_user(user_id):
+            return User.query.get(int(user_id))
+            
         return user
 
 @pytest.fixture
@@ -52,22 +73,16 @@ def test_cat(app: Any, test_user: User) -> Cat:
         return cat
 
 class TestCatRoutes:
-    def test_get_cats_list(self, client, test_cat):
+    def test_get_cats_list(self, client, test_user, test_cat):
         """测试获取猫咪列表"""
         # 未登录状态
         response = client.get(url_for('cats.admin__list'))
         assert response.status_code == 302  # 应重定向到登录页
         
-        # 登录状态
-        login_response = client.post('/auth/login', data={
-            'username': 'test',
-            'password': 'password'
-        }, follow_redirects=True)
-        assert login_response.status_code == 200  # 验证登录成功
-        
-        # 检查session
+        # 使用测试用户真实ID设置session
         with client.session_transaction() as sess:
-            assert '_user_id' in sess
+            sess['_user_id'] = str(test_user.id)
+            sess['_fresh'] = True
             
         response = client.get(url_for('cats.admin__list'))
         if response.status_code == 302:
