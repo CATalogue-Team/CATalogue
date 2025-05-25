@@ -42,26 +42,44 @@ class TestEnvironmentChecker:
             assert isinstance(result, dict)
             assert all(result.values())
 
-    def test_check_database_success(self, checker):
+    def test_check_database_success(self, checker, app):
         """测试数据库检查成功"""
-        with patch('app.core.health_check.db') as mock_db:
-            mock_db.session.execute.return_value = True
-            result = checker._check_database()
-            assert result is True
+        mock_db = MagicMock()
+        mock_db.session.execute.return_value = True
+        app.extensions = {'sqlalchemy': {'db': mock_db}}
+        
+        result = checker._check_database()
+        assert result is True
 
-    def test_check_database_failure(self, checker):
+    def test_check_database_failure(self, checker, app):
         """测试数据库检查失败"""
-        with patch('app.core.health_check.db') as mock_db:
-            mock_db.session.execute.side_effect = Exception('DB error')
-            result = checker._check_database()
-            assert result is False
+        mock_db = MagicMock()
+        mock_db.session.execute.side_effect = Exception('DB error')
+        app.extensions = {'sqlalchemy': {'db': mock_db}}
+        
+        result = checker._check_database()
+        assert result is False
 
-    def test_check_services_health(self, checker):
+    def test_check_services_health(self, checker, app):
         """测试服务健康检查"""
-        checker.app.cat_service = MagicMock()
-        checker.app.user_service = MagicMock()
+        # 创建模拟服务实例
+        mock_cat_service = MagicMock()
+        mock_user_service = MagicMock()
+        
+        # 设置服务健康检查返回True
+        mock_cat_service.check_health.return_value = True
+        mock_user_service.check_health.return_value = True
+        
+        # 将模拟服务添加到app上下文
+        app.cat_service = mock_cat_service
+        app.user_service = mock_user_service
+        
         result = checker._check_services_health()
         assert result is True
+        
+        # 验证服务方法被调用
+        mock_cat_service.check_health.assert_called_once()
+        mock_user_service.check_health.assert_called_once()
 
     def test_run_auto_repair(self, checker):
         """测试自动修复功能"""

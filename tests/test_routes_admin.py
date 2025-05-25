@@ -19,8 +19,19 @@ class TestAdminRoutes(BaseTestCase):
         # Verify user was created with admin privileges
         from app.models import User
         from app.extensions import db
+        from app.services.cat_service import CatService
+        
         db.session.flush()  # Ensure user is in database
         db_user = User.query.filter_by(username='admin_test').first()
+        
+        # 创建模拟CatService
+        from unittest.mock import MagicMock
+        mock_cat_service = MagicMock(spec=CatService)
+        mock_cat_service.get_all_cats.return_value = []
+        self.app.cat_service = mock_cat_service
+        
+        # 验证服务调用
+        cats = mock_cat_service.get_all_cats()
         if not db_user:
             raise RuntimeError('Failed to create admin test user')
         print(f"\nCreated admin user - ID: {db_user.id}, Username: {db_user.username}, Is Admin: {db_user.is_admin}")

@@ -36,7 +36,17 @@ class CatService(BaseService):
         """
         if not hasattr(self.db, 'session'):
             raise ValueError("db对象必须包含session属性")
-        return self.db.session.get(Cat, cat_id)
+            
+        try:
+            with self.db.session.begin_nested():
+                cat = self.db.session.get(Cat, cat_id)
+                if cat:
+                    # 预加载关联数据
+                    self.db.session.refresh(cat)
+                return cat
+        except Exception as e:
+            current_app.logger.error(f"获取猫咪信息失败(ID:{cat_id}): {str(e)}")
+            raise
     
     def get_all_cats(self) -> List[Cat]:
         """获取所有猫咪信息(按更新时间排序)
@@ -87,7 +97,16 @@ class CatService(BaseService):
         }
         
     def get_recent_cats(self, limit: int = 3) -> List[Cat]:
-        """获取最近添加的猫咪(包含品种筛选)"""
+        """获取最近添加的猫咪(包含品种筛选)
+        参数:
+            limit: 返回的记录数限制
+        返回:
+            按创建时间降序排列的猫咪列表
+        """
+        if not hasattr(self.db, 'session'):
+            raise ValueError("db对象必须包含session属性")
+        if not hasattr(self.db.session, 'query'):
+            raise ValueError("db.session必须支持query方法")
         return self.db.session.query(Cat).order_by(Cat.created_at.desc()).limit(limit).all()
     
     def create(self, images: Optional[List[FileStorage]] = None, **kwargs) -> Cat:
@@ -243,16 +262,25 @@ class CatService(BaseService):
             user_id: 必须提供用户ID
             images: 可选，图片列表
             **kwargs: 其他猫咪属性
+        返回:
+            创建的Cat对象
         """
         if not user_id:
-            raise ValueError("必须提供有效的user_id")
+            raise ValueError("user_id is required")
             
         kwargs['user_id'] = user_id
         
-        if 'name' in kwargs and self.db.session.query(Cat).filter_by(name=kwargs['name']).first():
-            raise ValueError(f"猫咪名称'{kwargs['name']}'已存在")
+        # 检查名称是否已存在
+        with self.db.session.begin_nested():
+            if 'name' in kwargs and self.db.session.query(Cat).filter_by(name=kwargs['name']).first():
+                raise ValueError(f"猫咪名称'{kwargs['name']}'已存在")
             
-        return self.create(images=images, **kwargs)
+        try:
+            return self.create(images=images, **kwargs)
+        except Exception as e:
+            self.db.session.rollback()
+            current_app.logger.error(f"创建猫咪失败: {str(e)}")
+            raise
     
     def update_cat(self, cat_id: int, **update_data) -> Optional[Cat]:
         """更新猫咪信息(兼容旧接口)"""

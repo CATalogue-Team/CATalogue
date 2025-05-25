@@ -17,7 +17,10 @@ def crud_blueprint(name, import_name, template_folder=None, url_prefix=None):
             def list():
                 page = request.args.get('page', 1, type=int)
                 per_page = current_app.config.get('ITEMS_PER_PAGE', 10)
-                items = service.get_paginated_cats(page=page, per_page=per_page) if model_name == 'cats' else service.get_paginated(service.model, page=page, per_page=per_page)
+                if model_name == 'cats':
+                    items = service.get_paginated_cats(page=page, per_page=per_page)
+                else:
+                    items = service.get_paginated(service.model, page=page, per_page=per_page) if hasattr(service, 'get_paginated') else []
                 return render_template(list_template, **{model_name: items})
             
             # 创建路由

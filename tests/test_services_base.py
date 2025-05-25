@@ -4,8 +4,12 @@ from app.models import db
 
 class TestBaseService:
     @pytest.fixture
-    def service(self):
-        return BaseService(db.session)
+    def service(self, app):
+        from unittest.mock import MagicMock
+        mock_db = MagicMock()
+        mock_db.session = db.session
+        with app.app_context():
+            yield BaseService(mock_db)
 
     def test_create(self, service):
         """测试创建方法"""

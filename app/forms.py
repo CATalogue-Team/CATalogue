@@ -14,8 +14,8 @@ class CatForm(FlaskForm):
         Optional()
     ])
     age = IntegerField('年龄', validators=[
-        NumberRange(min=0, max=30, message='年龄需在0-30之间'),
-        Optional()
+        DataRequired(message='年龄是必填项'),
+        NumberRange(min=0, max=30, message='年龄需在0-30之间的正整数')
     ])
     description = TextAreaField('描述', validators=[
         Length(max=500, message='描述不能超过500字符'),
@@ -67,8 +67,29 @@ class UserManagementForm(FlaskForm):
     ], validators=[DataRequired()])
 
 class UserForm(FlaskForm):
-    username = StringField('用户名', validators=[DataRequired()])
+    username = StringField('用户名', validators=[
+        DataRequired(message='用户名是必填项'),
+        Length(min=3, max=50, message='用户名长度需在3-50字符之间')
+    ])
+    password = PasswordField('密码', validators=[
+        DataRequired(message='密码是必填项'),
+        Length(min=6, message='密码长度至少6位')
+    ])
+    password_confirm = PasswordField('确认密码', validators=[
+        DataRequired(message='请确认密码'),
+        EqualTo('password', message='两次密码必须一致')
+    ])
     is_admin = BooleanField('管理员权限')
+
+    def validate_username(self, field):
+        from flask import g
+        user = User.query.filter_by(username=field.data).first()
+        # 如果是编辑现有用户，跳过自身检查
+        if hasattr(g, 'current_user') and user:
+            if user.id != g.current_user.id:
+                raise ValidationError('该用户名已被使用')
+        elif user:  # 新建用户
+            raise ValidationError('该用户名已被使用')
 
 class LoginForm(FlaskForm):
     username = StringField('用户名', validators=[DataRequired()])

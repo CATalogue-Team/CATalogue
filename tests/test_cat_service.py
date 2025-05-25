@@ -4,8 +4,12 @@ from app.models import Cat, db
 
 class TestCatService:
     @pytest.fixture
-    def service(self):
-        return CatService(db.session)
+    def service(self, app):
+        from unittest.mock import MagicMock
+        mock_db = MagicMock()
+        mock_db.session = db.session
+        with app.app_context():
+            yield CatService(mock_db)
 
     @pytest.fixture
     def sample_cat(self, service):
