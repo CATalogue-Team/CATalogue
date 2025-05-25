@@ -57,7 +57,8 @@ def test_cat_service(app):
             
             # 测试猫咪创建
             TestReporter.log_step("测试创建猫咪-正常情况")
-            cat = CatService.create_cat(
+            service = CatService(db)
+            cat = service.create_cat(
                 name='Test Cat',
                 breed='Test Breed',
                 age=2,
@@ -69,7 +70,8 @@ def test_cat_service(app):
             # 测试重复创建
             TestReporter.log_step("测试创建猫咪-重复名称")
             with pytest.raises(ValueError):
-                CatService.create_cat(
+                service = CatService(db)
+                service.create_cat(
                     name='Test Cat',
                     breed='Test Breed',
                     age=2,
@@ -79,7 +81,8 @@ def test_cat_service(app):
                 
             # 测试边界值
             TestReporter.log_step("测试边界值-最小年龄")
-            young_cat = CatService.create_cat(
+            service = CatService(db)
+            young_cat = service.create_cat(
                 name='Young Cat',
                 breed='Test Breed',
                 age=0,
@@ -91,20 +94,24 @@ def test_cat_service(app):
             # 测试查询
             TestReporter.log_step("测试查询猫咪")
             from app.models import Cat
-            found_cat = CatService.get(Cat, cat.id)
+            service = CatService(db)
+            found_cat = service.get(Cat, cat.id)
             assert found_cat == cat
             
             # 测试更新
             TestReporter.log_step("测试更新猫咪")
-            updated = CatService.update_cat(cat.id, age=3)
+            service = CatService(db)
+            updated = service.update_cat(cat.id, age=3)
             assert updated is not None
             assert updated.age == 3
             
             # 测试删除
             TestReporter.log_step("测试删除猫咪")
-            delete_result = CatService.delete(cat.id)
+            service = CatService(db)
+            delete_result = service.delete(cat.id)
             assert delete_result is True
-            deleted_cat = CatService.get(Cat, cat.id)
+            service = CatService(db)
+            deleted_cat = service.get(Cat, cat.id)
             assert deleted_cat is None
             
             # 测试图片上传功能
@@ -113,7 +120,8 @@ def test_cat_service(app):
             from werkzeug.datastructures import FileStorage
             from io import BytesIO
             
-            test_cat = CatService.create_cat(
+            service = CatService(db)
+            test_cat = service.create_cat(
                 name='Image Test Cat',
                 breed='Test Breed',
                 age=2,
@@ -129,12 +137,13 @@ def test_cat_service(app):
             )
             
             # 添加图片
-            CatService._handle_images(test_cat.id, [test_file])
+            service._handle_images(test_cat.id, [test_file])
             
             # 验证图片
             from app.extensions import db
             from app.models import Cat, CatImage
-            cat_with_images = CatService.get(Cat, test_cat.id)
+            service = CatService(db)
+            cat_with_images = service.get(Cat, test_cat.id)
             assert cat_with_images is not None
             
             # 查询关联图片
@@ -159,7 +168,8 @@ def test_cat_service(app):
             TestReporter.log_step("测试批量操作")
             cats = []
             for i in range(5):
-                cat = CatService.create_cat(
+                service = CatService(db)
+                cat = service.create_cat(
                     name=f'Batch Cat {i}',
                     breed='Test Breed',
                     age=i,
@@ -169,7 +179,8 @@ def test_cat_service(app):
                 cats.append(cat)
             
             # 测试分页查询
-            paginated: dict = CatService.get_paginated_cats(page=1, per_page=2)
+            service = CatService(db)
+            paginated: dict = service.get_paginated_cats(page=1, per_page=2)
             assert isinstance(paginated, dict)
             assert len(paginated.get('items', [])) == 2
             assert paginated.get('total', 0) >= 6  # 5批量 + 1之前的

@@ -1,5 +1,6 @@
 
-from flask import Blueprint, render_template, redirect, url_for, request, current_app, flash, Response
+from flask import Blueprint, render_template, redirect, url_for, request, current_app, flash, make_response
+from flask.wrappers import Response
 from pathlib import Path
 from flask_login import login_required, current_user
 from .. import limiter, db
@@ -17,7 +18,7 @@ bp, crud_route = crud_blueprint('cats', __name__, url_prefix='/cats')
 # 猫咪搜索页
 @bp.route('/search')
 @login_required
-def search():
+def search() -> Response:
     search_params = {
         'q': request.args.get('q', ''),
         'breed': request.args.get('breed', ''),
@@ -34,22 +35,23 @@ def search():
         is_adopted=search_params['is_adopted']
     )
     
-    return render_template('search.html', 
+    return make_response(render_template('search.html', 
                          cats=cats,
-                         search_params=search_params)
+                         search_params=search_params))
 
 # 猫咪详情页
-@bp.route('/<int:cat_id>')
+@bp.route('/admin/detail/<int:cat_id>')
 @login_required
-def detail(cat_id):
+@admin_required
+def admin__detail(cat_id: int) -> Response:
     cat = CatService.get_cat(cat_id)
     if not cat:
         flash('猫咪不存在', 'error')
-        return redirect(url_for('main.home'))
-    return render_template('cat_detail.html', 
+        return make_response(redirect(url_for('main.home')))
+    return make_response(render_template('cat_detail.html', 
                         cat=cat,
                         is_admin=current_user.is_admin,
-                        is_owner=current_user.id == cat.user_id)
+                        is_owner=current_user.id == cat.user_id))
 
 # 猫咪管理CRUD
 @crud_route('', CatService, CatForm, 'search.html', 'edit_cat.html')
@@ -92,15 +94,15 @@ class CatCRUD:
                         images = [form.images.data]
         
             # 直接调用Service层更新
-            return CatService.update_cat(
-                item.id,
-                images=images,
-                name=form.name.data,
-                breed=form.breed.data,
-                age=form.age.data,
-                description=form.description.data,
-                is_adopted=form.is_adopted.data
-            )
+            update_data = {
+                'images': images,
+                'name': form.name.data,
+                'breed': form.breed.data,
+                'age': form.age.data,
+                'description': form.description.data,
+                'is_adopted': form.is_adopted.data
+            }
+            return CatService.update_cat(item.id, update_data)
         except Exception as e:
             current_app.logger.error(f"更新猫咪失败: {str(e)}")
             flash('更新猫咪信息失败', 'error')
@@ -132,16 +134,16 @@ class CatCRUD:
             raise
 
 # 添加图片管理路由
-@bp.route('/<int:cat_id>/images', methods=['POST'])
+@bp.route('/admin/upload_image/<int:cat_id>', methods=['POST'])
 @login_required
 @admin_required
 @limiter.limit("5 per minute")
-def manage_images(cat_id) -> Response:
+def admin__upload_image(cat_id: int) -> Response:
     """管理猫咪图片"""
-    cat = CatService.get(cat_id)
+    cat = CatService.get_cat(cat_id)
     if not cat:
         flash('猫咪不存在', 'error')
-        return redirect(url_for('cats.admin__list'))
+        return make_response(redirect(url_for('cats.admin__list')))
     
     action = request.form.get('action')
     image_id = request.form.get('image_id')
@@ -176,7 +178,7 @@ def manage_images(cat_id) -> Response:
         except (ValueError, AttributeError):
             flash('删除图片失败', 'error')
     
-        return redirect(url_for('cats.admin__edit', id=cat_id))
+    return make_response(redirect(url_for('cats.admin__edit', id=cat_id)))
 
 # 权限控制
 from functools import wraps
