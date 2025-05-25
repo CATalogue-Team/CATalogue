@@ -4,6 +4,7 @@ from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from limits.storage import MemoryStorage
 db = SQLAlchemy()
 cache = Cache()
 login_manager = LoginManager()

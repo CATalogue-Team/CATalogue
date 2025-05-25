@@ -1,5 +1,6 @@
 
 from datetime import datetime
+from typing import Optional
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import db
@@ -74,11 +75,12 @@ class Cat(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # 关系定义
-    images = db.relationship('CatImage', backref='cat', lazy=True, cascade='all, delete-orphan')
+    images = db.relationship('CatImage', backref='cat', lazy=True, cascade='all, delete-orphan')  # type: ignore
     
     @property
-    def primary_image(self):
-        return next((img.url for img in self.images if img.is_primary), None)
+    def primary_image(self) -> Optional[str]:
+        """获取猫咪的主图片URL"""
+        return next((img.url for img in self.images if img.is_primary), None)  # type: ignore[union-attr]
     
     def __repr__(self):
         return f'<Cat {self.name}>'

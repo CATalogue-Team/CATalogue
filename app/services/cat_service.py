@@ -14,15 +14,15 @@ class CatService(BaseService):
     def __init__(self, db):
         super().__init__(db)
         
-    model: Type[Cat] = Cat  # 定义模型类
+    model = Cat  # 定义模型类
     
     @classmethod
-    def get(cls, model: Type[Cat] = None, id: int = None) -> Optional[Cat]:  # type: ignore
+    def get(cls, model=None, id: Optional[int] = None) -> Optional[Cat]:  # type: ignore
         """获取单个猫咪信息"""
         model = model or cls.model
         if id is None:
             return None
-        return cast(Optional[Cat], super().get(model, id))
+        return super().get(model, id)  # type: ignore
     
     @classmethod
     def get_all(cls, model: Type[Cat] = None) -> List[Cat]:
