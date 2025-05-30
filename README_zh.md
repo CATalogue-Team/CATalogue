@@ -426,7 +426,7 @@ graph LR
 
 ## 📜 开源协议
 
-MIT License © 2023 CATalogue Team
+MIT License © 2025 CATalogue Team
 
 ## 🔗 相关资源
 

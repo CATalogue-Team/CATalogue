@@ -1,48 +1,64 @@
 
 import os
 from dotenv import load_dotenv
-
-basedir = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(os.path.join(basedir, '.env'))
+from pathlib import Path
+from .constants import CatConstants, AppConstants
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'sqlite:///' + os.path.join(basedir, 'app.db')
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SENTRY_DSN = os.environ.get('SENTRY_DSN')
-    ENVIRONMENT = os.environ.get('FLASK_ENV', 'development')
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,
-        'pool_recycle': 300,
-        'pool_pre_ping': True
-    }
-    CACHE_TYPE = 'SimpleCache'
-    CACHE_DEFAULT_TIMEOUT = 300
-    TEMPLATES_AUTO_RELOAD = False
-    SEND_FILE_MAX_AGE_DEFAULT = 31536000
-    COMPRESS_ALGORITHM = 'gzip'
-    COMPRESS_LEVEL = 6
-    COMPRESS_MIN_SIZE = 500
-    MAX_IMAGE_SIZE = 1024 * 1024 * 5  # 5MB
-    ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'png', 'jpeg', 'gif']
-    UPLOAD_FOLDER = os.path.join(os.path.dirname(basedir), 'static/uploads')
-    LOG_LEVEL = 'DEBUG'
-    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    LOG_FILE = os.path.join(os.path.dirname(basedir), 'logs/app.log')
-    ITEMS_PER_PAGE = 10  # 默认每页显示数量
-    FLASK_ENV = 'development'
-    FLASK_DEBUG = True
+    def __init__(self):
+        self._load_env()
+        
+    def _load_env(self):
+        """加载环境变量"""
+        env_path = Path(__file__).parent.parent / '.env'
+        load_dotenv(env_path)
+        
+    @property
+    def SECRET_KEY(self):
+        return os.getenv('SECRET_KEY', 'dev-key')
+        
+    @property
+    def SQLALCHEMY_DATABASE_URI(self):
+        return os.getenv('DATABASE_URL', f'sqlite:///{Path(__file__).parent.parent}/app.db')
+        
+    @property
+    def UPLOAD_FOLDER(self):
+        return os.getenv('UPLOAD_FOLDER', str(Path(__file__).parent.parent / 'static/uploads'))
+        
+    @property 
+    def ITEMS_PER_PAGE(self):
+        return int(os.getenv('ITEMS_PER_PAGE', str(CatConstants.DEFAULT_ITEMS_PER_PAGE)))
+        
+    @property
+    def FLASK_ENV(self):
+        return os.getenv('FLASK_ENV', 'development')
+        
+    @property
+    def FLASK_DEBUG(self):
+        return os.getenv('FLASK_DEBUG', '1') == '1'
+        
+    @property
+    def CACHE_TYPE(self):
+        return os.getenv('CACHE_TYPE', 'SimpleCache')
+        
+    @property
+    def RATELIMIT_STORAGE_URL(self):
+        return os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
 
 
 class TestingConfig(Config):
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    CACHE_TYPE = 'NullCache'
-    WTF_CSRF_ENABLED = False
-    LOGIN_DISABLED = False
-    PRESERVE_CONTEXT_ON_EXCEPTION = False
-    SERVER_NAME = 'localhost.localdomain'
-    APPLICATION_ROOT = '/'
-    PREFERRED_URL_SCHEME = 'http'
+    @property
+    def TESTING(self):
+        return True
+        
+    @property
+    def SQLALCHEMY_DATABASE_URI(self):
+        return 'sqlite:///:memory:'
+        
+    @property
+    def SQLALCHEMY_TRACK_MODIFICATIONS(self):
+        return False
+        
+    @property
+    def CACHE_TYPE(self):
+        return 'NullCache'

@@ -331,4 +331,4 @@ pg_dump -U username -d dbname > backup_$(date +%Y%m%d).sql
 5. Create Pull Request
 
 ## 📜 License
-MIT License © 2023 CATalogue Team
+MIT License © 2025 CATalogue Team

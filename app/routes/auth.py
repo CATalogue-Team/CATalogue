@@ -1,33 +1,16 @@
 
-from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from .. import db, limiter
 from ..services.user_service import UserService
-from ..forms import RegisterForm
+from ..forms import RegisterForm, LoginForm
 
 bp = Blueprint('auth', __name__)
 
 @bp.route('/login', methods=['GET', 'POST'])
 @limiter.limit("10 per minute")
 def login():
-    from ..forms import LoginForm
     form = LoginForm()
-    
-    # API请求处理
-    if request.method == 'POST' and request.is_json:
-        data = request.get_json()
-        if not data or not data.get('username') or not data.get('password'):
-            return jsonify({'error': 'Invalid credentials'}), 401
-            
-        user = UserService.get_user_by_username(data['username'])
-        if not user or not user.check_password(data['password']):
-            return jsonify({'error': 'Invalid credentials'}), 401
-            
-        if user.status != 'approved':
-            return jsonify({'error': 'Account not approved'}), 403
-            
-        login_user(user)
-        return jsonify({'message': 'Login successful'}), 200
     
     # 页面请求处理
     if form.validate_on_submit():
@@ -54,37 +37,29 @@ def login():
 @login_required
 def logout():
     logout_user()
-    if request.is_json:
-        return jsonify({'message': 'Logout successful'}), 200
-    return '', 200
+    return redirect(url_for('main.home'))
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
-    from flask import jsonify
+    form = RegisterForm()
     
-    if request.method == 'POST':
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'Invalid request'}), 400
-            
+    if form.validate_on_submit():
         try:
-            user = UserService.create_user(
-                password=data.get('password'),
-                username=data.get('username'),
-                is_admin=data.get('is_admin', False),
+            if not form.password.data:
+                raise ValueError('密码不能为空')
+            UserService(db).create_user(
+                password=str(form.password.data),
+                username=form.username.data,
+                is_admin=False,
                 status='pending'
             )
-            return jsonify({
-                'message': 'Registration successful',
-                'user_id': user.id
-            }), 201
+            flash('注册成功，请等待管理员审核', 'success')
+            return redirect(url_for('auth.login'))
         except ValueError as e:
-            current_app.logger.error(f"用户注册失败: {str(e)}")
-            return jsonify({'error': str(e)}), 400
+            flash(f'注册失败: {str(e)}', 'danger')
         except Exception as e:
             current_app.logger.error(f"用户注册异常: {str(e)}")
-            return jsonify({'error': 'Registration failed'}), 500
+            flash('注册失败，请稍后再试', 'danger')
     
-    # GET请求返回注册页面
     form = RegisterForm()
     return render_template('register.html', form=form)

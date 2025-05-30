@@ -1,9 +1,9 @@
-
 from flask import Flask as BaseFlask, request
 from typing import Any, Optional, TypeVar, cast
 from werkzeug.wrappers import Response as BaseResponse
 from flask_sqlalchemy import SQLAlchemy
-from .extensions import db, cache, login_manager, csrf, limiter
+from flask_restx import Api, Resource, Namespace, fields
+from .extensions import db, cache, login_manager, csrf, limiter, babel
 from app.services.cat_service import CatService
 from .services.user_service import UserService
 
@@ -38,6 +38,11 @@ def create_app(config_class=Config):
               static_folder=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static'))
     app.config.from_object(config_class)
     
+    # 将property配置转换为实际值
+    for key in dir(config_class):
+        if isinstance(getattr(config_class, key, None), property):
+            app.config[key] = getattr(config_class(), key)
+    
     # 重置日志系统
     app.logger.handlers.clear()
     
@@ -71,7 +76,8 @@ def create_app(config_class=Config):
         return response
     
     # 初始化扩展
-    if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite://'):
+    db_uri = getattr(app.config, 'SQLALCHEMY_DATABASE_URI', '')
+    if isinstance(db_uri, str) and db_uri.startswith('sqlite://'):
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'poolclass': None}
     
     db.init_app(app)
@@ -80,6 +86,11 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
+    babel.init_app(app)
+    
+    # 配置Babel
+    app.config['BABEL_DEFAULT_LOCALE'] = 'zh'
+    app.config['BABEL_SUPPORTED_LOCALES'] = ['zh', 'en']
     
     # 初始化Sentry监控
     if app.config.get('SENTRY_DSN'):
@@ -103,11 +114,32 @@ def create_app(config_class=Config):
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
     # 注册蓝图
-    from app.routes import main, cats, admin, auth
+    from app.routes import main, admin, auth
     app.register_blueprint(main.bp)
-    app.register_blueprint(cats.bp)
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
+
+    # 初始化Swagger API文档
+    api = Api(
+        app,
+        version='1.0',
+        title='CATalogue API',
+        description='猫咪信息管理系统API文档',
+        doc='/api/docs/',
+        authorizations={
+            'Bearer Auth': {
+                'type': 'apiKey',
+                'in': 'header',
+                'name': 'Authorization'
+            }
+        }
+    )
+
+    # 注册API命名空间
+    from app.api.auth import api as auth_api
+    from app.api.cats import api as cats_api
+    api.add_namespace(auth_api)
+    api.add_namespace(cats_api)
     
     # 初始化服务(带日志记录)
     app.logger.info("正在初始化服务...")
