@@ -1,16 +1,31 @@
 import pytest
+from contextlib import ExitStack
 from datetime import datetime
+from flask.testing import FlaskClient
 from app import create_app
 from app.extensions import db
 from app.config import TestingConfig
 from app.models import User, Cat
 from .TestReporter import TestReporter
+from .base import BaseTest
+from .test_client import CustomTestClient
 
-@pytest.fixture(scope='module')
-def test_client():
-    app = create_app(TestingConfig)
-    testing_client = app.test_client()
-
+@pytest.fixture
+def test_client(app):
+    """创建自定义测试客户端"""
+    # 修改Flask测试客户端的environ_base
+    from flask.testing import FlaskClient
+    original_client = FlaskClient
+    class PatchedFlaskClient(FlaskClient):
+        environ_base = {
+            "REMOTE_ADDR": "127.0.0.1",
+            "HTTP_USER_AGENT": "CATalogue-TestClient/1.0"
+        }
+    app.test_client_class = PatchedFlaskClient
+    
+    testing_client = CustomTestClient(app, TestReporter())
+    app.test_client_class = original_client  # 恢复原始客户端
+    
     ctx = app.app_context()
     ctx.push()
 
@@ -19,13 +34,13 @@ def test_client():
     ctx.pop()
 
 @pytest.fixture(scope='function')
-def init_db():
-    db.create_all()
-    
-    yield db
-    
-    db.session.remove()
-    db.drop_all()
+def database(app):
+    """数据库fixture"""
+    with app.app_context():
+        db.create_all()
+        yield db
+        db.session.remove()
+        db.drop_all()
 
 @pytest.fixture
 def auth_headers(test_client):
@@ -72,6 +87,18 @@ def test_cat(app, test_user):
         db.session.add(cat)
         db.session.commit()
         return cat
+
+@pytest.fixture
+def base_test(app, database, test_client):
+    """基础测试fixture"""
+    test = BaseTest()
+    test.setup(app, database, test_client)
+    return test
+
+@pytest.fixture(autouse=True)
+def setup_base_test(base_test, app, database, test_client):
+    """自动设置BaseTest"""
+    base_test.setup(app, database, test_client)
 
 def pytest_sessionstart(session):
     """测试会话开始时初始化"""

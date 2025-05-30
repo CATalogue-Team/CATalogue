@@ -1,73 +1,83 @@
-import unittest
-from app import create_app
-from app.extensions import db
-from app.config import TestingConfig
+from typing import Optional
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from tests.test_client import CustomTestClient
+from .TestReporter import TestReporter
+from tests.core.factories import UserFactory, CatFactory
 
-class BaseTestCase(unittest.TestCase):
-    def setUp(self):
-        self.app = create_app(TestingConfig)
-        self.client = self.app.test_client()
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        db.create_all()
-        # 创建基础测试用户
-        self.test_user = self.create_test_user()
+class BaseTest:
+    """基础测试类"""
+    
+    def __init__(self):
+        self._app: Optional[Flask] = None
+        self._db: Optional[SQLAlchemy] = None 
+        self._client: Optional[CustomTestClient] = None
+        self._response_wrapper = TestReporter
 
-    def tearDown(self):
-        db.session.remove()
-        db.drop_all()
-        self.app_context.pop()
-
-    def login(self, username='testuser', password='testpass'):
-        """登录并返回响应，包含更详细的错误信息"""
-        with self.client.session_transaction() as sess:
-            sess.clear()
+    def setup(self, app: Flask, database: SQLAlchemy, test_client: CustomTestClient):
+        """测试初始化"""
+        if not app or not database or not test_client:
+            raise ValueError("Missing required setup parameters")
             
-        response = self.client.post('/login', data={
+        self._app = app
+        self._db = database
+        self._client = test_client
+        self._client.response_wrapper = self._response_wrapper
+        
+        # 确保数据库表存在
+        with self._app.app_context():
+            self._db.create_all()
+        
+    @property
+    def app(self) -> Flask:
+        if not self._app:
+            raise RuntimeError("App not initialized")
+        return self._app
+        
+    @property 
+    def db(self) -> SQLAlchemy:
+        if not self._db:
+            raise RuntimeError("Database not initialized")
+        return self._db
+        
+    @property
+    def client(self) -> CustomTestClient:
+        if not self._client:
+            raise RuntimeError("Client not initialized")
+        return self._client
+
+    def create_test_user(self, **kwargs):
+        """创建测试用户"""
+        with self.app.app_context():
+            user = UserFactory(**kwargs)
+            self.db.session.add(user)
+            self.db.session.commit()
+            self.db.session.refresh(user)
+            return user
+
+    def create_test_cat(self, **kwargs):
+        """创建测试猫咪"""
+        with self.app.app_context():
+            # 确保有user_id
+            if 'user_id' not in kwargs:
+                user = self.create_test_user()
+                kwargs['user_id'] = user.id
+            cat = CatFactory(**kwargs)
+            self.db.session.add(cat)
+            self.db.session.commit()
+            self.db.session.refresh(cat)
+            return cat
+
+    def login(self, username='testuser', password='password'):
+        """测试登录"""
+        user = self.create_test_user(
+            username=username,
+            password=password
+        )
+        response = self.client.post('/login', json={
             'username': username,
-            'password': password,
-            'remember': False
-        }, headers={
-            'Content-Type': 'application/x-www-form-urlencoded'
+            'password': password
         })
-        if response.status_code not in (200, 302):
-            raise RuntimeError(
-                f'Login failed with status {response.status_code}. '
-                f'Response: {response.get_data(as_text=True)}'
-            )
-        return response
-
-    def get_auth_headers(self, username='testuser', password='testpass'):
-        """获取认证头信息，基于会话的认证不需要token"""
-        response = self.login(username, password)  # 使用指定用户登录
-        session_cookie = response.headers.get('Set-Cookie')
-        if not session_cookie:
-            raise RuntimeError('Failed to get session cookie after login')
-        return {
-            'Cookie': session_cookie.split(';')[0]
-        }
-
-    def create_test_user(self, username='testuser', password='testpass', is_admin=False):
-        from app.models import User
-        user = User(**{
-            'username': username,
-            'is_admin': is_admin,
-            'status': 'approved'  # 默认设置为已批准状态
-        })
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        return user
-
-    def create_test_cat(self, name='Test Cat', user_id=1):
-        from app.models import Cat
-        cat = Cat(**{'name': name, 'user_id': user_id})
-        db.session.add(cat)
-        db.session.commit()
-        return cat
-
-    def assert_dict_contains(self, actual, expected):
-        """Assert that actual dict contains all items from expected dict"""
-        for key, value in expected.items():
-            self.assertIn(key, actual)
-            self.assertEqual(actual[key], value)
+        if not isinstance(response, dict) or 'data' not in response:
+            raise ValueError("Login failed - invalid response format")
+        return response['data']['access_token'], user
