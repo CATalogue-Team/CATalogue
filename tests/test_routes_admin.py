@@ -24,11 +24,11 @@ class TestAdminRoutes(BaseTestCase):
         db.session.flush()  # Ensure user is in database
         db_user = User.query.filter_by(username='admin_test').first()
         
-        # 创建模拟CatService
+        # 创建模拟CatService实例
         from unittest.mock import MagicMock
         mock_cat_service = MagicMock(spec=CatService)
-        mock_cat_service.get_all_cats.return_value = []
-        self.app.cat_service = mock_cat_service
+        mock_cat_service.return_value.get_all_cats.return_value = []
+        self.app.cat_service = mock_cat_service()
         
         # 验证服务调用
         cats = mock_cat_service.get_all_cats()

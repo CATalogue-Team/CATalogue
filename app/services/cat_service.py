@@ -347,3 +347,68 @@ class CatService(BaseService):
         except Exception as e:
             current_app.logger.error(f"校验图片URL时出错: {str(e)}", exc_info=True)
             raise
+
+    def get_cat_stats(self) -> dict:
+        """获取猫咪统计信息
+        返回:
+            {
+                'total': int,               # 猫咪总数
+                'by_breed': dict,           # 按品种统计
+                'by_adoption': dict,        # 按领养状态统计
+                'age_distribution': dict    # 年龄分布
+            }
+        """
+        stats = {
+            'total': 0,
+            'by_breed': {},
+            'by_adoption': {
+                'adopted': 0,
+                'not_adopted': 0
+            },
+            'age_distribution': {
+                'kitten': 0,    # 0-1岁
+                'young': 0,     # 1-3岁
+                'adult': 0,     # 3-7岁
+                'senior': 0     # 7岁以上
+            }
+        }
+
+        try:
+            # 获取总数
+            stats['total'] = self.db.session.query(Cat).count()
+
+            # 按品种统计
+            breed_counts = self.db.session.query(
+                Cat.breed,
+                db.func.count(Cat.id)
+            ).group_by(Cat.breed).all()
+            stats['by_breed'] = {breed: count for breed, count in breed_counts}
+
+            # 按领养状态统计
+            adoption_counts = self.db.session.query(
+                Cat.is_adopted,
+                db.func.count(Cat.id)
+            ).group_by(Cat.is_adopted).all()
+            for is_adopted, count in adoption_counts:
+                key = 'adopted' if is_adopted else 'not_adopted'
+                stats['by_adoption'][key] = count
+
+            # 年龄分布统计
+            age_case = db.case(
+                (Cat.age < 1, 'kitten'),
+                (Cat.age < 3, 'young'),
+                (Cat.age < 7, 'adult'),
+                (db.true(), 'senior'),
+                else_='unknown'
+            )
+            age_ranges = self.db.session.query(
+                age_case,
+                db.func.count(Cat.id)
+            ).group_by(age_case).all()
+            stats['age_distribution'] = {age_range: count for age_range, count in age_ranges}
+
+            return stats
+
+        except Exception as e:
+            current_app.logger.error(f"获取猫咪统计信息失败: {str(e)}")
+            raise

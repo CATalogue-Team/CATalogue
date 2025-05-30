@@ -1,4 +1,4 @@
-import pytest
+`import pytest
 from app.services.base_service import BaseService
 from app.models import db
 
@@ -13,31 +13,36 @@ class TestBaseService:
 
     def test_create(self, service):
         """测试创建方法"""
-        result = service.create({'name': 'test'})
+        from app.models import Cat
+        result = service.create(Cat, name='test')
         assert result is not None
         assert hasattr(result, 'id')
 
     def test_get_by_id(self, service):
         """测试根据ID获取"""
-        obj = service.create({'name': 'test'})
-        result = service.get_by_id(obj.id)
+        from app.models import Cat
+        obj = service.create(Cat, name='test')
+        result = service.get(Cat, obj.id)
         assert result.id == obj.id
 
     def test_update(self, service):
         """测试更新方法"""
-        obj = service.create({'name': 'test'})
-        updated = service.update(obj.id, {'name': 'updated'})
+        from app.models import Cat
+        obj = service.create(Cat, name='test')
+        updated = service.update(Cat, obj.id, name='updated')
         assert updated.name == 'updated'
 
     def test_delete(self, service):
         """测试删除方法"""
-        obj = service.create({'name': 'test'})
-        service.delete(obj.id)
-        assert service.get_by_id(obj.id) is None
+        from app.models import Cat
+        obj = service.create(Cat, name='test')
+        service.delete(Cat, obj.id)
+        assert service.get(Cat, obj.id) is None
 
     def test_list_all(self, service):
         """测试获取所有记录"""
-        service.create({'name': 'test1'})
-        service.create({'name': 'test2'})
-        results = service.list_all()
+        from app.models import Cat
+        service.create(Cat, name='test1')
+        service.create(Cat, name='test2')
+        results = service.get_all(Cat)
         assert len(results) >= 2

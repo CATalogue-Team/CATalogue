@@ -84,7 +84,7 @@ class TestCatRoutes:
         app.cat_service = mock_cat_service
         
         # 未登录状态
-        response = client.get(url_for('cats.list'))
+        response = client.get(url_for('cats.admin__list'))
         assert response.status_code == 302  # 应重定向到登录页
         
         # 使用测试用户真实ID设置session
@@ -92,7 +92,7 @@ class TestCatRoutes:
             sess['_user_id'] = str(test_user.id)
             sess['_fresh'] = True
             
-        response = client.get(url_for('cats.list'))
+        response = client.get(url_for('cats.admin__list'))
         assert response.status_code == 200
         mock_cat_service.get_all_cats.assert_called_once()
 

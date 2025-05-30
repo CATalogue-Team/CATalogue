@@ -69,11 +69,12 @@ def test_cat_routes(client, app):
     from unittest.mock import MagicMock
     from app.services.cat_service import CatService
     
-    # 创建模拟服务
+    # 创建模拟服务实例
     mock_cat_service = MagicMock(spec=CatService)
-    mock_cat_service.get_recent_cats.return_value = []
-    mock_cat_service.get_cat_by_id.return_value = MagicMock()
-    app.cat_service = mock_cat_service
+    # 设置实例方法返回值
+    mock_cat_service.return_value.get_recent_cats.return_value = []
+    mock_cat_service.return_value.get_cat_by_id.return_value = MagicMock()
+    app.cat_service = mock_cat_service()
     
     TestReporter.start_test("猫咪路由测试")
     routes = [

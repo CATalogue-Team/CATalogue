@@ -9,7 +9,9 @@ class TestCatService:
         mock_db = MagicMock()
         mock_db.session = db.session
         with app.app_context():
+            db.create_all()  # 确保测试前创建所有表
             yield CatService(mock_db)
+            db.session.remove()
 
     @pytest.fixture
     def sample_cat(self, service):
@@ -53,14 +55,14 @@ class TestCatService:
 
     def test_list_cats(self, service):
         """测试获取猫咪列表"""
-        service.create({'name': 'Cat1', 'age': 1})
-        service.create({'name': 'Cat2', 'age': 2})
+        service.create({'name': 'Cat1', 'age': 1, 'breed': 'TestBreed1', 'description': 'Test cat 1'})
+        service.create({'name': 'Cat2', 'age': 2, 'breed': 'TestBreed2', 'description': 'Test cat 2'})
         cats = service.list_all()
         assert len(cats) >= 2
 
     def test_search_cats(self, service):
         """测试搜索猫咪"""
-        service.create({'name': 'SearchCat', 'breed': 'TestBreed'})
+        service.create({'name': 'SearchCat', 'breed': 'TestBreed', 'age': 3, 'description': 'Test search cat'})
         results = service.search({'breed': 'TestBreed'})
         assert len(results) > 0
         assert results[0].breed == 'TestBreed'
@@ -69,7 +71,7 @@ class TestCatService:
         """测试获取猫咪统计信息"""
         stats = service.get_cat_stats()
         assert 'total' in stats
-        assert 'breeds' in stats
+        assert 'by_breed' in stats
 
     def test_upload_cat_image(self, service, sample_cat):
         """测试上传猫咪图片"""

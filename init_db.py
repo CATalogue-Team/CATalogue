@@ -43,22 +43,20 @@ def init_database(admin_username='admin', admin_password='admin123', skip_sample
             logger.info(f"数据库位置: {app.config['SQLALCHEMY_DATABASE_URI'].split('///')[-1]}")
             logger.info(f"上传文件夹: {app.config['UPLOAD_FOLDER']}")
             
-            # 使用事务确保原子性
-            with db.session.begin_nested():
-                # 1. 创建所有表
-                logger.info("正在创建数据库表...")
-                db.create_all()
-                logger.info("数据库表创建完成")
-                
-                # 2. 设置上传文件夹
-                setup_upload_folder(app)
-                
-                # 3. 初始化管理员账户
-                init_admin_account(admin_username, admin_password)
-                
-                # 4. 初始化示例猫咪数据(可选)
-                if not skip_samples:
-                    init_sample_cats()
+            # 1. 创建所有表
+            logger.info("正在创建数据库表...")
+            db.create_all()
+            logger.info("数据库表创建完成")
+            
+            # 2. 设置上传文件夹
+            setup_upload_folder(app)
+            
+            # 3. 初始化管理员账户
+            init_admin_account(admin_username, admin_password)
+            
+            # 4. 初始化示例猫咪数据(可选)
+            if not skip_samples:
+                init_sample_cats()
             
             logger.info("数据库初始化完成")
             logger.info(f"用户总数: {User.query.count()}")
@@ -117,37 +115,41 @@ def init_admin_account(admin_username='admin', admin_password='admin123'):
 
 def init_sample_cats():
     """初始化示例猫咪数据(不包含图片)"""
-    if Cat.query.count() == 0:
-        logger.info("正在创建示例猫咪数据...")
+    logger.info("正在创建示例猫咪数据...")
+    
+    # 确保管理员用户存在
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        logger.error("必须先创建管理员账号才能初始化示例数据")
+        return
         
-        # 确保管理员用户存在
-        admin = User.query.filter_by(username='admin').first()
-        if not admin:
-            logger.error("必须先创建管理员账号才能初始化示例数据")
-            return
-            
-        # 创建示例猫咪
-        cats = [
-            Cat(name='橘猫', breed='橘猫', age=2, 
-                description='可爱的橘色猫咪，性格温顺', 
-                is_adopted=False, user_id=admin.id),
-            Cat(name='黑猫', breed='黑猫', age=3,
-                description='神秘的黑猫，喜欢夜间活动',
-                is_adopted=True, user_id=admin.id),
-            Cat(name='白猫', breed='波斯猫', age=1,
-                description='纯洁的白猫，长毛品种',
-                is_adopted=False, user_id=admin.id),
-            Cat(name='三花猫', breed='三花猫', age=4,
-                description='花色漂亮的三花猫，已绝育',
-                is_adopted=False, user_id=admin.id),
-            Cat(name='英短', breed='英国短毛猫', age=2,
-                description='圆脸可爱的英国短毛猫',
-                is_adopted=True, user_id=admin.id)
-        ]
-        
-        db.session.bulk_save_objects(cats)
-        db.session.commit()
-        logger.info(f"已创建 {len(cats)} 条示例猫咪数据")
+    # 如果已有猫咪数据则跳过
+    if Cat.query.count() > 0:
+        logger.info("已有猫咪数据，跳过示例数据初始化")
+        return
+    
+    # 创建示例猫咪
+    cats = [
+        Cat(name='橘猫', breed='橘猫', age=2, 
+            description='可爱的橘色猫咪，性格温顺', 
+            is_adopted=False, user_id=admin.id),
+        Cat(name='黑猫', breed='黑猫', age=3,
+            description='神秘的黑猫，喜欢夜间活动',
+            is_adopted=True, user_id=admin.id),
+        Cat(name='白猫', breed='波斯猫', age=1,
+            description='纯洁的白猫，长毛品种',
+            is_adopted=False, user_id=admin.id),
+        Cat(name='三花猫', breed='三花猫', age=4,
+            description='花色漂亮的三花猫，已绝育',
+            is_adopted=False, user_id=admin.id),
+        Cat(name='英短', breed='英国短毛猫', age=2,
+            description='圆脸可爱的英国短毛猫',
+            is_adopted=True, user_id=admin.id)
+    ]
+    
+    db.session.bulk_save_objects(cats)
+    db.session.commit()
+    logger.info(f"已创建 {len(cats)} 条示例猫咪数据")
 
 if __name__ == '__main__':
     init_database()

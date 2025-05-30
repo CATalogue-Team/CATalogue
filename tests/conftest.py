@@ -18,7 +18,7 @@ def test_client():
 
     ctx.pop()
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def init_db():
     db.create_all()
     
@@ -50,11 +50,10 @@ def app():
 def test_user(app):
     """生成测试用户"""
     with app.app_context():
-        user = User(
-            username=f'testuser_{datetime.now().timestamp()}',
-            is_admin=False,
-            status='approved'
-        )
+        user = User()
+        user.username = f'testuser_{datetime.now().timestamp()}'
+        user.is_admin = False
+        user.status = 'approved'
         user.set_password('password')
         db.session.add(user)
         db.session.commit()
@@ -64,13 +63,12 @@ def test_user(app):
 def test_cat(app, test_user):
     """生成测试猫咪"""
     with app.app_context():
-        cat = Cat(
-            name=f'TestCat_{datetime.now().timestamp()}',
-            breed='Test Breed',
-            age=2,
-            description='Test description',
-            user_id=test_user.id
-        )
+        cat = Cat()
+        cat.name = f'TestCat_{datetime.now().timestamp()}'
+        cat.breed = 'Test Breed'
+        cat.age = 2
+        cat.description = 'Test description'
+        cat.user_id = test_user.id
         db.session.add(cat)
         db.session.commit()
         return cat
