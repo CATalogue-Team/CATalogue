@@ -12,7 +12,9 @@ def home():
 @bp.route('/search')
 @login_required
 def search():
-    cats = CatService.get_recent_cats(limit=3)
+    from app.extensions import db
+    service = CatService(db)
+    cats = service.get_recent_cats(limit=3)
     return render_template('search.html',
                         cats=cats,
                         no_results=False,
@@ -27,8 +29,10 @@ def ping():
 def test_pagination():
     """测试分页配置"""
     from flask import current_app
+    from app.extensions import db
     page_size = current_app.config.get('ITEMS_PER_PAGE', 10)
-    cats = CatService.get_recent_cats(limit=page_size)
+    service = CatService(db)
+    cats = service.get_recent_cats(limit=page_size)
     return jsonify({
         'config_page_size': page_size,
         'actual_page_size': len(cats),

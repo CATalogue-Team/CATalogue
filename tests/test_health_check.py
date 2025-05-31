@@ -1,13 +1,11 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from app.core.health_check import EnvironmentChecker
-from flask import Flask
 
 class TestEnvironmentChecker:
     @pytest.fixture
-    def app(self):
-        app = Flask(__name__)
-        app.config['TESTING'] = True
+    def app(self, app):
+        """使用conftest.py中的app fixture"""
         return app
 
     @pytest.fixture

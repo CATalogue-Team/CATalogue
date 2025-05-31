@@ -41,7 +41,10 @@ class CatForm(FlaskForm):
 
 class RegisterForm(FlaskForm):
     username = StringField('用户名', validators=[DataRequired()])
-    password = PasswordField('密码', validators=[DataRequired()])
+    password = PasswordField('密码', validators=[
+        DataRequired(),
+        Length(min=6, max=128, message='密码长度需在6-128位之间')
+    ])
     password_confirm = PasswordField('确认密码', validators=[
         DataRequired(), 
         EqualTo('password', message='两次密码必须一致')
@@ -49,7 +52,8 @@ class RegisterForm(FlaskForm):
     is_admin = BooleanField('申请管理员权限')
 
     def validate_username(self, username):
-        user = User.query.filter_by(username=username.data).first()
+        from app.extensions import db
+        user = db.session.query(User).filter_by(username=username.data).first()
         if user:
             raise ValidationError('该用户名已被使用')
 
@@ -73,7 +77,7 @@ class UserForm(FlaskForm):
     ])
     password = PasswordField('密码', validators=[
         DataRequired(message='密码是必填项'),
-        Length(min=6, message='密码长度至少6位')
+        Length(min=6, max=128, message='密码长度需在6-128位之间')
     ])
     password_confirm = PasswordField('确认密码', validators=[
         DataRequired(message='请确认密码'),
@@ -83,7 +87,8 @@ class UserForm(FlaskForm):
 
     def validate_username(self, field):
         from flask import g
-        user = User.query.filter_by(username=field.data).first()
+        from app.extensions import db
+        user = db.session.query(User).filter_by(username=field.data).first()
         # 如果是编辑现有用户，跳过自身检查
         if hasattr(g, 'current_user') and user:
             if user.id != g.current_user.id:

@@ -2,8 +2,16 @@ from unittest.mock import patch
 from tests.base import BaseTest
 from app.decorators import prevent_self_operation
 from flask import json
+from app.config import TestingConfig
+from app import create_app
 
 class TestDecorators(BaseTest):
+    def setUp(self):
+        app = create_app(TestingConfig)
+        from app.extensions import db
+        from tests.test_client import CustomTestClient
+        self.setup(app, db, CustomTestClient(app))
+        
     def test_prevent_self_operation_logic(self):
         from app.decorators import prevent_self_operation
         
