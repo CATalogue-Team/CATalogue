@@ -10,8 +10,6 @@ class UserFactory(BaseFactory):
         """默认用户数据"""
         return {
             'username': f'testuser_{datetime.now().timestamp()}',
-            'password': self.faker.password(),
-            'email': self.faker.email(),
             'created_at': self.created_at
         }
         
@@ -20,6 +18,10 @@ class UserFactory(BaseFactory):
         from app.extensions import db
         data = self.make_dict(**overrides)
         user = User(**data)
+        if 'password' in overrides:
+            user.set_password(overrides['password'])
+        else:
+            user.set_password('testpassword')
         db.session.add(user)
         db.session.commit()
         return user

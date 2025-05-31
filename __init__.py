@@ -1,0 +1,1 @@
+# CATalogue package initialization

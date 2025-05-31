@@ -68,17 +68,22 @@ class UserService(BaseService):
             **filters
         )
     
-    def create_user(self, password: str, **kwargs) -> User:
+    def create_user(self, username: str, password: str, **kwargs) -> User:
         """
         创建用户账号
         参数:
+            username: 用户名
             password: 明文密码
             **kwargs: 其他用户属性
         """
-        if 'password' in kwargs:
-            raise ValueError("请使用password参数而不是kwargs传递密码")
+        if not username or not password:
+            raise ValueError("用户名和密码不能为空")
             
-        user = User(**kwargs)
+        # 检查用户名是否已存在
+        if self.get_user_by_username(username):
+            raise ValueError("用户名已存在")
+            
+        user = User(username=username, **kwargs)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()

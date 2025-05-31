@@ -6,9 +6,9 @@ from app import create_app
 from app.extensions import db
 from app.config import TestingConfig
 from app.models import User, Cat
-from .test_reporter import TestReporter
-from .base import BaseTest
-from .test_client import CustomTestClient
+from tests.services.users.test_reporter import TestReporter
+from tests.base import BaseTest
+from tests.test_client import CustomTestClient
 
 @pytest.fixture
 def test_client(app):
