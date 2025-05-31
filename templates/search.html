@@ -87,7 +87,7 @@
                             <p class="card-text">{{ cat.description|truncate(100) }}</p>
                         </div>
                         <div class="card-footer bg-transparent">
-                            <a href="{{ url_for('cats.detail', cat_id=cat.id) }}" 
+    <a href="{{ url_for('cats.admin__detail', id=cat.id) }}"
                                class="btn btn-sm btn-outline-primary">查看详情</a>
                         </div>
                     </div>

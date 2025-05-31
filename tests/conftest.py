@@ -99,6 +99,10 @@ def base_test(app, database, test_client):
 def setup_base_test(base_test, app, database, test_client):
     """自动设置BaseTest"""
     base_test.setup(app, database, test_client)
+    yield
+    # 清理操作
+    with app.app_context():
+        db.session.remove()
 
 def pytest_sessionstart(session):
     """测试会话开始时初始化"""

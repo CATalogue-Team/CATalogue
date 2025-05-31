@@ -149,8 +149,17 @@ class CatService(BaseService):
         if not images:
             return
 
+        max_size = current_app.config.get('MAX_IMAGE_SIZE', 5 * 1024 * 1024)  # 默认5MB
+        
         try:
             for i, image in enumerate(images):
+                # 检查文件大小
+                image.seek(0, 2)  # 移动到文件末尾
+                file_size = image.tell()
+                image.seek(0)  # 重置文件指针
+                
+                if file_size > max_size:
+                    raise ValueError(f"图片大小超过限制({max_size/1024/1024:.1f}MB)")
                 if not image or not image.filename or not image.content_type:
                     continue
 

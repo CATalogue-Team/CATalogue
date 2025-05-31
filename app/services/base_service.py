@@ -96,22 +96,40 @@ class BaseService:
         self.db.session.commit()
         return True
         
-    def get_paginated(self, model, page=1, per_page=None, **filters):
+    def get_paginated(self, model, page=1, per_page=None, order_by=None, **filters):
         """
         分页获取记录
         参数:
             model: 模型类
             page: 当前页码
             per_page: 每页记录数(默认使用配置中的ITEMS_PER_PAGE)
+            order_by: 排序字段(带-前缀表示降序)
             filters: 过滤条件
         返回:
             Pagination对象
         """
         from flask import current_app
-        query = model.query
+        query = self.db.session.query(model)
+        
+        # 应用过滤条件
         for key, value in filters.items():
-            if hasattr(model, key):
+            if key.endswith('__ilike'):
+                field = key[:-7]
+                if hasattr(model, field):
+                    query = query.filter(getattr(model, field).ilike(value))
+            elif hasattr(model, key):
                 query = query.filter(getattr(model, key) == value)
+        
+        # 应用排序
+        if order_by:
+            if order_by.startswith('-'):
+                field = order_by[1:]
+                if hasattr(model, field):
+                    query = query.order_by(getattr(model, field).desc())
+            else:
+                if hasattr(model, order_by):
+                    query = query.order_by(getattr(model, order_by))
+                    
         return query.paginate(
             page=page,
             per_page=per_page or current_app.config.get('ITEMS_PER_PAGE', 10),

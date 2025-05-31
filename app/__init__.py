@@ -114,10 +114,11 @@ def create_app(config_class=Config):
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
     # 注册蓝图
-    from app.routes import main, admin, auth
+    from app.routes import main, admin, auth, cats
     app.register_blueprint(main.bp)
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
+    app.register_blueprint(cats.bp)
 
     # 初始化Swagger API文档
     api = Api(
@@ -214,4 +215,5 @@ from .models import User
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    from app import db
+    return db.session.query(User).get(int(user_id))

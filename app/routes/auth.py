@@ -1,5 +1,5 @@
 
-from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
+from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from .. import db, limiter
 from ..services.user_service import UserService
@@ -10,15 +10,35 @@ bp = Blueprint('auth', __name__)
 @bp.route('/login', methods=['GET', 'POST'])
 @limiter.limit("10 per minute")
 def login():
-    form = LoginForm()
+    # 处理JSON API请求
+    if request.is_json:
+        data = request.get_json()
+        if not data or 'username' not in data or 'password' not in data:
+            return jsonify({'error': '需要用户名和密码'}), 400
+            
+        user = UserService(db).get_user_by_username(data['username'])
+        
+        if user and user.check_password(data['password']):
+            if user.status != 'approved':
+                return jsonify({'error': '账号未审核'}), 403
+            
+            login_user(user, remember=data.get('remember', False))
+            return jsonify({
+                'message': '登录成功',
+                'access_token': user.generate_auth_token(),
+                'user': user.to_dict()
+            })
+            
+        return jsonify({'error': '用户名或密码错误'}), 401
     
-    # 页面请求处理
+    # 处理表单请求
+    form = LoginForm()
     if form.validate_on_submit():
         if not form.username.data or not form.password.data:
             flash('请输入用户名和密码', 'danger')
             return redirect(url_for('auth.login'))
             
-        user = UserService.get_user_by_username(form.username.data)
+        user = UserService(db).get_user_by_username(form.username.data)
         
         if user and user.check_password(form.password.data):
             if user.status != 'approved':
@@ -41,8 +61,31 @@ def logout():
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
-    form = RegisterForm()
+    # 处理JSON API请求
+    if request.is_json:
+        data = request.get_json()
+        if not data or 'username' not in data or 'password' not in data:
+            return jsonify({'error': '需要用户名和密码'}), 400
+            
+        try:
+            user = UserService(db).create_user(
+                password=data['password'],
+                username=data['username'],
+                is_admin=False,
+                status='pending'
+            )
+            return jsonify({
+                'message': '注册成功，请等待管理员审核',
+                'user': user.to_dict()
+            }), 201
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+        except Exception as e:
+            current_app.logger.error(f"用户注册异常: {str(e)}")
+            return jsonify({'error': '注册失败，请稍后再试'}), 500
     
+    # 处理表单请求
+    form = RegisterForm()
     if form.validate_on_submit():
         try:
             if not form.password.data:
@@ -61,5 +104,4 @@ def register():
             current_app.logger.error(f"用户注册异常: {str(e)}")
             flash('注册失败，请稍后再试', 'danger')
     
-    form = RegisterForm()
     return render_template('register.html', form=form)

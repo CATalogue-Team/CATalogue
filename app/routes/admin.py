@@ -1,5 +1,6 @@
 
 from flask import Blueprint, jsonify, request, current_app, abort
+from app import db
 from flask_login import login_required, current_user
 import logging
 import os
@@ -16,7 +17,7 @@ def list_users():
     """获取用户列表"""
     if not current_user.is_admin:
         abort(403)
-    users = UserService.get_all_users()
+    users = UserService(db).get_all_users()
     return jsonify([u.to_dict() for u in users])
 
 @bp.route('/cats', methods=['GET'])
@@ -25,7 +26,7 @@ def list_cats():
     """获取猫咪列表""" 
     if not current_user.is_admin:
         abort(403)
-    cats = CatService.get_all_cats()
+    cats = CatService(db).get_all_cats()
     return jsonify([c.to_dict() for c in cats])
 
 @bp.route('/approvals', methods=['GET'])

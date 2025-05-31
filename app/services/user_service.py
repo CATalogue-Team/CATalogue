@@ -11,28 +11,42 @@ class UserService(BaseService):
         
     model = User  # 定义模型类
     
-    @staticmethod
-    def get_user(user_id: int) -> Optional[User]:
-        """获取单个用户信息"""
-        return BaseService.get(User, user_id)
+    def get_user(self, id: int) -> Optional[User]:
+        """获取单个用户信息
+        参数:
+            id: 用户ID
+        返回:
+            用户对象或None
+        """
+        return self.get(model=User, id=id)
     
-    @staticmethod
-    def get_user_by_username(username: str) -> Optional[User]:
-        """通过用户名获取用户"""
-        return User.query.filter_by(username=username).first()
+    def get_user_by_username(self, username: str) -> Optional[User]:
+        """通过用户名获取用户
+        参数:
+            username: 用户名
+        返回:
+            用户对象或None
+        """
+        from app import db
+        return db.session.query(User).filter_by(username=username).first()
     
-    @staticmethod
-    def get_pending_users() -> List[User]:
-        """获取待审批用户列表"""
-        return User.query.filter_by(status='pending').all()
+    def get_pending_users(self) -> List[User]:
+        """获取待审批用户列表
+        返回:
+            待审批用户列表
+        """
+        from app import db
+        return db.session.query(User).filter_by(status='pending').all()
     
-    @staticmethod
-    def get_all_users() -> List[User]:
-        """获取所有用户"""
-        return User.query.all()
+    def get_all_users(self) -> List[User]:
+        """获取所有用户
+        返回:
+            所有用户列表
+        """
+        from app import db
+        return db.session.query(User).all()
         
-    @staticmethod
-    def get_paginated_users(page: int = 1, per_page: int = 10, search: str = None):
+    def get_paginated_users(self, page: int = 1, per_page: int = 10, search: Optional[str] = None):
         """
         获取分页用户列表
         参数:
@@ -40,17 +54,21 @@ class UserService(BaseService):
             per_page: 每页记录数
             search: 搜索关键词(用户名)
         返回:
-            SQLAlchemy分页对象
+            Pagination分页对象
         """
-        query = User.query.order_by(User.created_at.desc())
-        
+        filters = {}
         if search:
-            query = query.filter(User.username.ilike(f'%{search}%'))
+            filters['username__ilike'] = f'%{search}%'
             
-        return query.paginate(page=page, per_page=per_page, error_out=False)
+        return self.get_paginated(
+            model=User,
+            page=page,
+            per_page=per_page,
+            order_by='-created_at',
+            **filters
+        )
     
-    @staticmethod
-    def create_user(password: str, **kwargs) -> User:
+    def create_user(self, password: str, **kwargs) -> User:
         """
         创建用户账号
         参数:
@@ -66,45 +84,68 @@ class UserService(BaseService):
         db.session.commit()
         return user
     
-    @staticmethod
-    def approve_user(user_id: int, approved_by: int) -> bool:
-        """审批用户账号"""
+    def approve_user(self, user_id: int, approved_by: int) -> bool:
+        """审批用户账号
+        参数:
+            user_id: 用户ID
+            approved_by: 审批人ID
+        返回:
+            是否审批成功
+        """
+        from app import db
         if user_id == approved_by:
             return False
             
-        user = User.query.get(user_id)
+        user = db.session.query(User).get(user_id)
         if not user:
             return False
             
         user.status = 'approved'
         user.approved_by = approved_by
-        BaseService.update(User, user_id, status='approved', approved_by=approved_by)
+        self.update(model=User, id=user_id, status='approved', approved_by=approved_by)
         return True
     
-    @staticmethod
-    def reject_user(user_id: int, current_user_id: int = None) -> bool:
-        """拒绝用户账号"""
+    def reject_user(self, user_id: int, current_user_id: Optional[int] = None) -> bool:
+        """拒绝用户账号
+        参数:
+            user_id: 用户ID
+            current_user_id: 当前用户ID
+        返回:
+            是否拒绝成功
+        """
+        from app import db
         if current_user_id and user_id == current_user_id:
             return False
             
-        user = User.query.get(user_id)
+        user = db.session.query(User).get(user_id)
         if not user:
             return False
             
         user.status = 'rejected'
-        BaseService.update(User, user_id, status='rejected')
+        self.update(model=User, id=user_id, status='rejected')
         return True
     
-    @staticmethod
-    def update_user_role(user_id: int, is_admin: bool, current_user_id: int = None) -> bool:
-        """更新用户角色"""
+    def update_user_role(self, user_id: int, is_admin: bool, current_user_id: Optional[int] = None) -> bool:
+        """更新用户角色
+        参数:
+            user_id: 用户ID
+            is_admin: 是否管理员
+            current_user_id: 当前用户ID
+        返回:
+            是否更新成功
+        """
         if current_user_id and user_id == current_user_id:
             return False
-        return BaseService.update(User, user_id, is_admin=is_admin) is not None
+        return self.update(model=User, id=user_id, is_admin=is_admin) is not None
     
-    @staticmethod
-    def delete_user(user_id: int, current_user_id: int = None) -> bool:
-        """删除用户"""
+    def delete_user(self, user_id: int, current_user_id: Optional[int] = None) -> bool:
+        """删除用户
+        参数:
+            user_id: 用户ID
+            current_user_id: 当前用户ID
+        返回:
+            是否删除成功
+        """
         if current_user_id and user_id == current_user_id:
             return False
-        return BaseService.delete(User, user_id)
+        return self.delete(model=User, id=user_id)

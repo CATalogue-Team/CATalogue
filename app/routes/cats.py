@@ -1,4 +1,3 @@
-
 from flask import Blueprint, render_template, redirect, url_for, request, current_app, flash, make_response, jsonify
 from flask.wrappers import Response
 from pathlib import Path
@@ -62,13 +61,19 @@ def cats_list():
     """猫咪列表"""
     page = request.args.get('page', 1, type=int)
     per_page = current_app.config.get('ITEMS_PER_PAGE', 10)
-    items = CatService(db).get_paginated_cats(page=page, per_page=per_page)
+    items = CatService(db).get_all_cats()
+    if not isinstance(items, list) or (items and not hasattr(items[0], 'id')):
+        current_app.logger.error(f"Invalid cats data type: {type(items)}")
+        items = []
     return render_template('search.html', cats=items)
 
 @bp.route('/create', methods=['GET', 'POST'], endpoint='admin_cats_create')
 @login_required
 def cats_create():
     """创建猫咪"""
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login'))
+        
     form = CatForm()
     if form.validate_on_submit():
         try:
@@ -94,7 +99,7 @@ def cats_create():
 @login_required
 def cats_edit(id):
     """编辑猫咪"""
-    cat = CatService.get_cat(id)
+    cat = CatService(db).get_cat(cat_id=id)
     if not cat:
         flash('猫咪不存在', 'danger')
         return redirect(url_for('cats.admin_cats_list'))
@@ -122,7 +127,7 @@ def cats_edit(id):
 def cats_delete(id):
     """删除猫咪"""
     try:
-        cat = CatService.get_cat(id)
+        cat = CatService(db).get_cat(cat_id=id)
         if not cat:
             return jsonify({'error': '猫咪不存在'}), 404
             

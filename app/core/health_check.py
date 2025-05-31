@@ -356,11 +356,18 @@ class EnvironmentChecker:
         try:
             with self.app.app_context():
                 # 检查服务是否存在且可调用
-                return all([
-                    hasattr(self.app, 'cat_service') and 
+                if not all([
+                    hasattr(self.app, 'cat_service'),
+                    hasattr(self.app, 'user_service'),
                     hasattr(getattr(self.app, 'cat_service'), 'check_health'),
-                    hasattr(self.app, 'user_service') and 
                     hasattr(getattr(self.app, 'user_service'), 'check_health')
+                ]):
+                    return False
+                
+                # 实际调用健康检查方法
+                return all([
+                    getattr(self.app, 'cat_service').check_health(),
+                    getattr(self.app, 'user_service').check_health()
                 ])
         except Exception as e:
             self.logger.error(f"服务检查失败: {str(e)}")

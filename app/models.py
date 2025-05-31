@@ -1,9 +1,10 @@
-
 from datetime import datetime
+from itsdangerous import URLSafeTimedSerializer as Serializer
+from flask import current_app
 from typing import Optional
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped
 from . import db
 
 class Base(DeclarativeBase):
@@ -33,6 +34,14 @@ class User(Base, UserMixin):
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def generate_auth_token(self, expiration=3600):
+        """生成认证token"""
+        s = Serializer(current_app.config['SECRET_KEY'])
+        return s.dumps({
+            'id': self.id,
+            'exp': datetime.utcnow().timestamp() + expiration
+        })
     
     def __repr__(self):
         return f'<User {self.username}>'
@@ -83,12 +92,12 @@ class Cat(Base):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # 关系定义
-    images = db.relationship('CatImage', backref='cat', lazy=True, cascade='all, delete-orphan')  # type: ignore
+    images: db.Mapped[list['CatImage']] = db.relationship('CatImage', backref='cat', lazy=True, cascade='all, delete-orphan')
     
     @property
     def primary_image(self) -> Optional[str]:
         """获取猫咪的主图片URL"""
-        return next((img.url for img in self.images if img.is_primary), None)  # type: ignore[union-attr]
+        return next((img.url for img in self.images if img.is_primary), None) if self.images else None
     
     def __repr__(self):
         return f'<Cat {self.name}>'

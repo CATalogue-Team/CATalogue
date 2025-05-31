@@ -5,10 +5,8 @@ import time
 class TestReporter:
     """测试报告工具类"""
     
-    def __init__(self):
-        self.reports = []
-    
-    def __call__(self, data=None, status_code=None, headers=None):
+    @staticmethod
+    def handle_response(data=None, status_code=None, headers=None):
         """处理响应数据"""
         if data is not None and status_code is not None and headers is not None:
             try:
@@ -25,7 +23,7 @@ class TestReporter:
                     'status_code': status_code,
                     'headers': headers
                 }
-        return self
+        return None
     
     @staticmethod
     def _print_box(title, content, color=Fore.CYAN):
