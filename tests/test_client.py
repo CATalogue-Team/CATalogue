@@ -1,6 +1,6 @@
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
-from .TestReporter import TestReporter
+from .test_reporter import TestReporter
 
 class CustomTestClient:
     """自定义测试客户端，直接使用werkzeug.test.Client"""

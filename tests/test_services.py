@@ -5,7 +5,7 @@ from app import create_app
 from app.services import UserService, CatService
 from app.extensions import db as _db
 from colorama import init
-from .TestReporter import TestReporter
+from .test_reporter import TestReporter
 
 # 初始化彩色输出
 init(autoreset=True)

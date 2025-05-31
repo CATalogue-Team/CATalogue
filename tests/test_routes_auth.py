@@ -1,8 +1,8 @@
 import unittest
 from parameterized import parameterized
-from tests.base import BaseTestCase
+from tests.base import BaseTest
 
-class TestAuthRoutes(BaseTestCase):
+class TestAuthRoutes(BaseTest):
     @parameterized.expand([
         ('/login', 'POST', {'username': 'test', 'password': 'test'}, 401),  # 需要有效凭证
         ('/register', 'POST', {'username': 'new', 'password': 'new'}, 201),

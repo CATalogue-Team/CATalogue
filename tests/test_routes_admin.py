@@ -1,8 +1,8 @@
 import unittest
 from parameterized import parameterized
-from tests.base import BaseTestCase
+from tests.base import BaseTest
 
-class TestAdminRoutes(BaseTestCase):
+class TestAdminRoutes(BaseTest):
     @parameterized.expand([
         ('/admin/users', 200, 'admin'),
         ('/admin/cats', 200, 'admin'), 

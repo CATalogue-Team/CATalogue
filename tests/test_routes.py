@@ -4,7 +4,7 @@ from app import create_app
 from flask import url_for
 import time
 from colorama import init, Fore
-from .TestReporter import TestReporter
+from .test_reporter import TestReporter
 
 # 初始化彩色输出
 init(autoreset=True)

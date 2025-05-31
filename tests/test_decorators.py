@@ -1,9 +1,9 @@
 from unittest.mock import patch
-from tests.base import BaseTestCase
+from tests.base import BaseTest
 from app.decorators import prevent_self_operation
 from flask import json
 
-class TestDecorators(BaseTestCase):
+class TestDecorators(BaseTest):
     def test_prevent_self_operation_logic(self):
         from app.decorators import prevent_self_operation
         

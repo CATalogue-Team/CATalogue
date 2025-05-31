@@ -1,4 +1,4 @@
-`import pytest
+import pytest
 from app.services.base_service import BaseService
 from app.models import db
 

@@ -6,7 +6,7 @@ from app import create_app
 from app.extensions import db
 from app.config import TestingConfig
 from app.models import User, Cat
-from .TestReporter import TestReporter
+from .test_reporter import TestReporter
 from .base import BaseTest
 from .test_client import CustomTestClient
 

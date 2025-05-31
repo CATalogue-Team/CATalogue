@@ -1,14 +1,16 @@
+import unittest
 from typing import Optional
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from tests.test_client import CustomTestClient
-from .TestReporter import TestReporter
+from .test_reporter import TestReporter
 from tests.core.factories import UserFactory, CatFactory
 
-class BaseTest:
+class BaseTest(unittest.TestCase):
     """基础测试类"""
     
-    def __init__(self):
+    def __init__(self, methodName='runTest'):
+        super().__init__(methodName)
         self._app: Optional[Flask] = None
         self._db: Optional[SQLAlchemy] = None 
         self._client: Optional[CustomTestClient] = None
@@ -81,3 +83,17 @@ class BaseTest:
         if not isinstance(response, dict) or 'data' not in response:
             raise ValueError("Login failed - invalid response format")
         return response['data']['access_token'], user
+        
+    def get_auth_headers(self, username='testuser', password='password'):
+        """获取认证头"""
+        try:
+            login_result = self.login(username, password)
+            if isinstance(login_result, tuple) and len(login_result) == 2:
+                token, _ = login_result
+                return {
+                    'Authorization': f'Bearer {token}',
+                    'Content-Type': 'application/json'
+                }
+            raise ValueError("Invalid login response format")
+        except Exception as e:
+            raise RuntimeError(f"Failed to get auth headers: {str(e)}")
