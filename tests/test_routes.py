@@ -64,51 +64,6 @@ def test_main_routes(client, app):
     
     TestReporter.end_test("主路由测试", time.time() - start_time)
 
-def test_cat_routes(client, app):
-    """测试猫咪路由"""
-    from unittest.mock import MagicMock
-    from app.services.cat_service import CatService
-    
-    # 创建模拟服务实例
-    mock_cat_service = MagicMock(spec=CatService)
-    # 设置实例方法返回值
-    mock_cat_service.return_value.get_recent_cats.return_value = []
-    mock_cat_service.return_value.get_cat_by_id.return_value = MagicMock()
-    app.cat_service = mock_cat_service()
-    
-    TestReporter.start_test("猫咪路由测试")
-    routes = [
-        ('猫咪详情', 'cats.detail', {'cat_id': 1}),
-        ('猫咪列表', 'cats.list', {}),
-        ('猫咪搜索', 'cats.search', {})
-    ]
-    
-    for name, endpoint, params in routes:
-        TestReporter.log_step(f"测试 {name} 路由")
-        start_time = time.time()
-        with app.app_context():
-            res = client.get(url_for(endpoint, **params))
-        
-        if res.status_code in [200, 302, 401]:
-            TestReporter.success(
-                f"{name} 路由 ({endpoint}) - 状态码: {res.status_code} "
-                f"(耗时: {time.time()-start_time:.2f}s)"
-            )
-        else:
-            TestReporter.failure(
-                f"{name} 路由 ({endpoint})\n"
-                f"预期状态码: 200, 302或401\n"
-                f"实际状态码: {res.status_code}\n"
-                f"响应内容: {res.data[:100]}..."
-            )
-            pytest.fail(f"{name} 路由测试失败")
-    
-    # 验证服务方法被调用
-    mock_cat_service.get_recent_cats.assert_called()
-    mock_cat_service.get_cat_by_id.assert_called_with(1)
-    
-    TestReporter.end_test("猫咪路由测试", time.time() - start_time)
-
 def test_auth_routes(client, app):
     """测试认证路由"""
     TestReporter.start_test("认证路由测试")

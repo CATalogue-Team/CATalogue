@@ -1,6 +1,6 @@
-from typing import List, Optional, Type, cast
+from typing import List, Optional, Type, cast, ClassVar
 from datetime import datetime, timezone
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import Query, DeclarativeBase
 from .. import db
 from ..models import Cat, User, CatImage
 from werkzeug.datastructures import FileStorage
@@ -14,7 +14,7 @@ class CatService(BaseService):
     def __init__(self, db):
         super().__init__(db)
         
-    model = Cat  # 定义模型类
+    model: ClassVar[Type[Cat]] = Cat  # 定义模型类
     
     def get(self, model=None, id: Optional[int] = None) -> Optional[Cat]:  # type: ignore
         """获取单个猫咪信息"""
@@ -111,17 +111,33 @@ class CatService(BaseService):
     
     def create(self, images: Optional[List[FileStorage]] = None, **kwargs) -> Cat:
         """创建猫咪信息(支持多图上传)"""
-        if 'user_id' in kwargs:
-            user_id = kwargs['user_id']
-            if not self.db.session.get(User, user_id):
-                raise ValueError(f"用户ID {user_id} 不存在")
+        if 'user_id' not in kwargs:
+            raise ValueError("user_id是必填字段")
             
-        kwargs.update({
+        user_id = kwargs['user_id']
+        if not self.db.session.get(User, user_id):
+            raise ValueError(f"用户ID {user_id} 不存在")
+            
+        if 'name' not in kwargs:
+            raise ValueError("name是必填字段")
+            
+        # 确保必填字段存在
+        required_fields = {
+            'name': kwargs['name'],
+            'user_id': user_id,
             'created_at': datetime.now(timezone.utc),
             'updated_at': datetime.now(timezone.utc)
-        })
+        }
         
-        cat = super().create(self.model, **kwargs)
+        # 合并参数
+        create_kwargs = {**required_fields, **kwargs}
+        current_app.logger.debug(f"创建猫咪参数: {create_kwargs}")
+        
+        try:
+            cat = cast(Cat, super().create(self.model, **create_kwargs))
+        except Exception as e:
+            current_app.logger.error(f"创建猫咪失败: {str(e)}")
+            raise
         
         if images:
             self._handle_images(cat.id, images)

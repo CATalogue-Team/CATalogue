@@ -3,9 +3,17 @@ from datetime import datetime
 from typing import Optional
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.orm import DeclarativeBase
 from . import db
 
-class User(db.Model, UserMixin):
+class Base(DeclarativeBase):
+    """SQLAlchemy基类"""
+    pass
+
+# 关联Flask-SQLAlchemy的metadata
+Base.metadata = db.metadata
+
+class User(Base, UserMixin):
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -40,7 +48,7 @@ class User(db.Model, UserMixin):
             'last_login': self.last_login.isoformat() if self.last_login else None
         }
 
-class CatImage(db.Model):
+class CatImage(Base):
     __tablename__ = 'cat_images'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -61,7 +69,7 @@ class CatImage(db.Model):
     def __repr__(self):
         return f'<CatImage {self.url}>'
 
-class Cat(db.Model):
+class Cat(Base):
     __tablename__ = 'cats'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -100,7 +108,7 @@ class Cat(db.Model):
             'primary_image': self.primary_image
         }
 
-class EnvironmentCheck(db.Model):
+class EnvironmentCheck(Base):
     __tablename__ = 'environment_checks'
     
     id = db.Column(db.Integer, primary_key=True)
