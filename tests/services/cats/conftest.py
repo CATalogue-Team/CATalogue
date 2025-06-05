@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from app.services import CatService
 from app.extensions import db as _db
-from tests.core.factories import CatFactory
+from tests.shared.factories.cat import CatFactory
 
 @pytest.fixture
 def cat_service(app):

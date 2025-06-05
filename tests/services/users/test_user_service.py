@@ -4,7 +4,7 @@ from unittest.mock import patch
 from app.models import User
 from app.services import UserService
 from app.extensions import db
-from tests.core.factories import UserFactory
+from tests.shared.factories.user import UserFactory
 from tests.services.users.test_reporter import TestReporter
 
 @pytest.mark.service

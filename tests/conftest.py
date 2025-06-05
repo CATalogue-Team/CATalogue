@@ -11,20 +11,9 @@ from tests.base import BaseTest
 from tests.test_client import CustomTestClient
 
 @pytest.fixture
-def test_client(app):
+def client(app):
     """创建自定义测试客户端"""
-    # 修改Flask测试客户端的environ_base
-    from flask.testing import FlaskClient
-    original_client = FlaskClient
-    class PatchedFlaskClient(FlaskClient):
-        environ_base = {
-            "REMOTE_ADDR": "127.0.0.1",
-            "HTTP_USER_AGENT": "CATalogue-TestClient/1.0"
-        }
-    app.test_client_class = PatchedFlaskClient
-    
     testing_client = CustomTestClient(app, TestReporter())
-    app.test_client_class = original_client  # 恢复原始客户端
     
     ctx = app.app_context()
     ctx.push()
@@ -54,11 +43,39 @@ def auth_headers(test_client):
     }
 
 @pytest.fixture
-def app():
+def app(tmp_path):
     """创建测试应用"""
+    from app.extensions import login_manager
+    
     app = create_app(TestingConfig)
     app.config['TESTING'] = True
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['WTF_CSRF_ENABLED'] = False
+    app.config['UPLOAD_FOLDER'] = str(tmp_path / 'uploads')
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+    
+    # 确保login_manager已初始化
+    login_manager.init_app(app)
+    
+    # 测试环境下模拟token验证
+    from flask_login import login_user
+    from app.models import User
+    
+    @login_manager.request_loader
+    def load_user_from_request(request):
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+            if token == 'test_token' or token == 'test_token_123':
+                # 创建测试用户
+                user = User()
+                user.id = 1
+                user.username = 'testuser'
+                user.is_admin = True
+                user.status = 'approved'
+                return user
+        return None
+    
     return app
 
 @pytest.fixture
@@ -89,16 +106,16 @@ def test_cat(app, test_user):
         return cat
 
 @pytest.fixture
-def base_test(app, database, test_client):
+def base_test(app, database, client):
     """基础测试fixture"""
     test = BaseTest()
-    test.setup(app, database, test_client)
+    test.setup(app, database, client)
     return test
 
 @pytest.fixture(autouse=True)
-def setup_base_test(base_test, app, database, test_client):
+def setup_base_test(base_test, app, database, client):
     """自动设置BaseTest"""
-    base_test.setup(app, database, test_client)
+    base_test.setup(app, database, client)
     yield
     # 清理操作
     with app.app_context():

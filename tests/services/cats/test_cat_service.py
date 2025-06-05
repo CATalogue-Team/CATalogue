@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from app.models import Cat, CatImage
 from app.services import CatService
 from app.extensions import db
-from tests.core.factories import CatFactory
+from tests.shared.factories.cat import CatFactory
 
 @pytest.mark.service
 @pytest.mark.cat

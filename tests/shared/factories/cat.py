@@ -1,4 +1,4 @@
-from tests.core.factories.base import BaseFactory
+from tests.shared.factories.base import BaseFactory
 from app.models import Cat
 from datetime import datetime
 import random

@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, request, current_app, flash, make_response, jsonify
+from ..extensions import csrf  # 导入CSRF扩展
 from flask.wrappers import Response
 from pathlib import Path
 from flask_login import login_required, current_user
@@ -13,8 +14,9 @@ from ..decorators import admin_required
 from ..models import CatImage, Cat
 
 bp = Blueprint('cats', __name__, url_prefix='/cats')
+api_bp = Blueprint('cats_api', __name__, url_prefix='/api/v1/cats')
 
-# 猫咪搜索页
+# Web界面路由
 @bp.route('/search')
 @login_required
 def search() -> Response:
@@ -54,7 +56,42 @@ def admin__detail(id: int) -> Response:
                         is_admin=current_user.is_admin,
                         is_owner=current_user.id == cat.user_id))
 
-# 猫咪管理CRUD路由
+# API路由 - 获取单个猫咪
+@api_bp.route('/<int:id>', methods=['GET'])
+@login_required
+def api_cats_get(id):
+    """获取单个猫咪(API)"""
+    cat = CatService(db).get_cat(id)
+    if not cat:
+        return jsonify({'error': 'Cat not found'}), 404
+    return jsonify({
+        'id': cat.id,
+        'name': cat.name,
+        'breed': cat.breed,
+        'age': cat.age,
+        'description': cat.description,
+        'is_adopted': cat.is_adopted
+    })
+
+# API路由 - 猫咪列表
+@api_bp.route('', methods=['GET'])
+@login_required
+def api_cats_list():
+    """获取猫咪列表(API)"""
+    items = CatService(db).get_all_cats()
+    if not isinstance(items, list) or (items and not hasattr(items[0], 'id')):
+        current_app.logger.error(f"Invalid cats data type: {type(items)}")
+        items = []
+    return jsonify([{
+        'id': cat.id,
+        'name': cat.name,
+        'breed': cat.breed,
+        'age': cat.age,
+        'description': cat.description,
+        'is_adopted': cat.is_adopted
+    } for cat in items])
+
+# Web管理路由
 @bp.route('', endpoint='admin_cats_list')
 @login_required
 def cats_list():
@@ -67,6 +104,93 @@ def cats_list():
         items = []
     return render_template('search.html', cats=items)
 
+# API路由 - 创建猫咪
+@api_bp.route('', methods=['POST'])
+@limiter.limit("10 per minute")
+@csrf.exempt  # 禁用CSRF保护
+@login_required
+def api_cats_create():
+    """创建猫咪(API)"""
+    current_app.logger.info(f"Request headers: {request.headers}")
+    
+    # 检查Content-Type
+    if request.content_type != 'application/json':
+        return jsonify({'error': 'Content-Type must be application/json'}), 400
+    
+    try:
+        data = request.get_json()
+        if data is None:
+            return jsonify({'error': 'Request body must be valid JSON'}), 400
+    except Exception as e:
+        current_app.logger.error(f"JSON解析错误: {str(e)}")
+        return jsonify({'error': 'Invalid JSON format'}), 400
+    
+    current_app.logger.info(f"Request data: {data}")
+    
+    # 添加详细日志记录
+    current_app.logger.debug(f"Request headers: {request.headers}")
+    current_app.logger.debug(f"Request content type: {request.content_type}")
+    current_app.logger.debug(f"Request method: {request.method}")
+    current_app.logger.debug(f"Request URL: {request.url}")
+    
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Request body must be a JSON object'}), 400
+    
+    # 检查必填字段
+    required_fields = ['name', 'age', 'breed']
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        current_app.logger.error(f"Missing required fields: {missing_fields}")
+        return jsonify({
+            'error': 'Missing required fields',
+            'missing': missing_fields
+        }), 400
+    
+    # 验证数据类型
+    try:
+        if not isinstance(data, dict):
+            raise ValueError
+        if isinstance(data.get('age'), str):
+            data['age'] = int(data['age'])
+        elif not isinstance(data.get('age'), int):
+            raise ValueError
+    except (ValueError, TypeError):
+        current_app.logger.error(f"Invalid age value: {data.get('age', 'unknown')}")
+        return jsonify({'error': 'Age must be an integer'}), 400
+    
+    try:
+        with db.session.begin():
+            current_app.logger.debug(f"Creating cat with data: {data}")
+            user_id = int(data.get('user_id', current_user.id)) if data.get('user_id') else current_user.id
+            cat = CatService(db).create_cat(
+                name=data['name'],
+                breed=data['breed'],
+                age=int(data['age']),
+                description=data.get('description', ''),
+                is_adopted=bool(data.get('is_adopted', False)),
+                user_id=user_id,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            current_app.logger.debug(f"Created cat: {cat.id}")
+        return jsonify({
+            'id': cat.id,
+            'name': cat.name,
+            'breed': cat.breed,
+            'age': cat.age,
+            'description': cat.description,
+            'is_adopted': cat.is_adopted
+        }), 201
+    except ValueError as e:
+        db.session.rollback()
+        current_app.logger.error(f'API创建猫咪参数错误: {str(e)}')
+        return jsonify({'error': 'Invalid parameter value'}), 400
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'API创建猫咪失败: {str(e)}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+# Web管理路由 - 创建猫咪
 @bp.route('/create', methods=['GET', 'POST'], endpoint='admin_cats_create')
 @login_required
 def cats_create():
@@ -95,6 +219,49 @@ def cats_create():
             flash(f'添加失败: {str(e)}', 'danger')
     return render_template('edit_cat.html', form=form)
 
+# API路由 - 更新猫咪
+@api_bp.route('/<int:id>', methods=['PUT'])
+@login_required
+def api_cats_update(id):
+    """更新猫咪信息(API)"""
+    # 检查Content-Type
+    if request.content_type != 'application/json':
+        return jsonify({'error': 'Content-Type must be application/json'}), 400
+    
+    try:
+        data = request.get_json()
+        if data is None:
+            return jsonify({'error': 'Request body must be valid JSON'}), 400
+    except Exception as e:
+        current_app.logger.error(f"JSON解析错误: {str(e)}")
+        return jsonify({'error': 'Invalid JSON format'}), 400
+    
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Request body must be a JSON object'}), 400
+    
+    try:
+        cat = CatService(db).update_cat(
+            id,
+            name=data.get('name'),
+            breed=data.get('breed'),
+            age=data.get('age'),
+            description=data.get('description'),
+            is_adopted=data.get('is_adopted'),
+            updated_at=datetime.utcnow()
+        )
+        if not cat:
+            return jsonify({'error': 'Cat not found'}), 404
+        return jsonify({
+            'id': cat.id,
+            'name': cat.name,
+            'breed': cat.breed,
+            'age': cat.age
+        })
+    except Exception as e:
+        current_app.logger.error(f'API更新猫咪失败: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+# Web管理路由 - 编辑猫咪
 @bp.route('/edit/<int:id>', methods=['GET', 'POST'], endpoint='admin_cats_edit')
 @login_required
 def cats_edit(id):
@@ -122,6 +289,19 @@ def cats_edit(id):
             flash(f'更新失败: {str(e)}', 'danger')
     return render_template('edit_cat.html', form=form, cat=cat)
 
+# API路由 - 删除猫咪
+@api_bp.route('/<int:id>', methods=['DELETE'])
+@login_required
+def api_cats_delete(id):
+    """删除猫咪(API)"""
+    try:
+        CatService(db).delete_cat(id)
+        return '', 204
+    except Exception as e:
+        current_app.logger.error(f'API删除猫咪失败: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+# Web管理路由 - 删除猫咪
 @bp.route('/delete/<int:id>', methods=['POST'], endpoint='admin_cats_delete')
 @login_required
 def cats_delete(id):
@@ -145,24 +325,64 @@ def cats_delete(id):
         current_app.logger.error(f'删除猫咪失败: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
-# 添加图片管理路由
-@bp.route('/admin/upload_image/<int:id>', methods=['POST'])
+# API路由 - 搜索猫咪
+@api_bp.route('/search', methods=['GET'])
 @login_required
-@admin_required
+def api_cats_search():
+    """搜索猫咪(API)"""
+    search_params = {
+        'q': request.args.get('q', ''),
+        'breed': request.args.get('breed', ''),
+        'min_age': request.args.get('min_age', type=int),
+        'max_age': request.args.get('max_age', type=int),
+        'is_adopted': request.args.get('is_adopted', type=lambda x: x == 'true')
+    }
+    
+    cats = CatService(db).search_cats(
+        keyword=search_params['q'],
+        breed=search_params['breed'],
+        min_age=search_params['min_age'],
+        max_age=search_params['max_age'],
+        is_adopted=search_params['is_adopted']
+    )
+    
+    return jsonify([{
+        'id': cat.id,
+        'name': cat.name,
+        'breed': cat.breed,
+        'age': cat.age
+    } for cat in cats])
+
+# API路由 - 上传猫咪图片
+@api_bp.route('/<int:id>/image', methods=['POST'])
 @limiter.limit("5 per minute")
-def admin__upload_image(id: int) -> Response:  # type: ignore
+@login_required
+def api_cats_upload_image(id: int):
     """上传猫咪图片"""
-    cat_service = CatService(db)
-    cat = cat_service.get_cat(id)
+    current_app.logger.info(f"Received upload request for cat {id}")
+    current_app.logger.debug(f"Request method: {request.method}")
+    current_app.logger.debug(f"Request path: {request.path}")
+    current_app.logger.debug(f"Request endpoint: {request.endpoint}")
+    current_app.logger.debug(f"Request headers: {request.headers}")
+    current_app.logger.debug(f"Content-Type: {request.content_type}")
+    current_app.logger.debug(f"Request files: {request.files}")
+    
+    # 检查Content-Type
+    if not request.content_type.startswith('multipart/form-data'):
+        current_app.logger.error("Invalid content type for image upload")
+        return jsonify({'error': 'Content-Type must be multipart/form-data'}), 400
+    
+    cat = CatService(db).get_cat(id)
     if not cat:
-        flash('猫咪不存在', 'error')
-        return make_response(redirect(url_for('cats.admin_cats_list')))
+        return jsonify({'error': 'Cat not found'}), 404
             
     # 处理图片上传
-    image = request.files.get('image')
-    if not image or not image.filename:
-        flash('请选择有效的图片文件', 'error')
-        return make_response(redirect(url_for('cats.admin_cats_edit', id=id)))
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+        
+    image = request.files['file']
+    if not image or image.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
             
     try:
         # 保存图片
@@ -179,10 +399,11 @@ def admin__upload_image(id: int) -> Response:  # type: ignore
         )
         db.session.add(cat_image)
         db.session.commit()
-        flash('图片上传成功', 'success')
+        return jsonify({
+            'message': 'Image uploaded successfully',
+            'image_url': f"/static/uploads/{filename}"
+        }), 200
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"上传图片失败: {str(e)}")
-        flash('图片上传失败', 'error')
-            
-    return make_response(redirect(url_for('cats.admin_cats_edit', id=id)))
+        return jsonify({'error': str(e)}), 500

@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from app.services import UserService
 from app.extensions import db as _db
-from tests.core.factories import UserFactory
+from tests.shared.factories.user import UserFactory
 
 @pytest.fixture
 def user_service(app):

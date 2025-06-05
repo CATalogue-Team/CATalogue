@@ -113,11 +113,12 @@ def create_app(config_class=Config):
     # 确保上传目录存在
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
-    # 注册蓝图
-    from app.routes import main, admin, auth, cats
+    # 注册蓝图 - 先注册API蓝图
+    from .routes import main, auth, admin, cats
+    app.register_blueprint(cats.api_bp)  # 先注册API蓝图
     app.register_blueprint(main.bp)
-    app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
+    app.register_blueprint(admin.bp)
     app.register_blueprint(cats.bp)
 
     # 初始化Swagger API文档
