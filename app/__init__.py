@@ -6,6 +6,7 @@ from flask_restx import Api, Resource, Namespace, fields
 from .extensions import db, cache, login_manager, csrf, limiter, babel
 from app.services.cat_service import CatService
 from .services.user_service import UserService
+from .middlewares.error_handler import register_error_handlers
 
 # 自定义Flask类添加类型注解
 class Flask(BaseFlask):
@@ -120,6 +121,9 @@ def create_app(config_class=Config):
     app.register_blueprint(auth.bp)
     app.register_blueprint(admin.bp)
     app.register_blueprint(cats.bp)
+
+    # 注册错误处理器
+    register_error_handlers(app)
 
     # 初始化Swagger API文档
     api = Api(

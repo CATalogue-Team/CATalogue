@@ -9,6 +9,7 @@ from app.models import User, Cat
 from tests.services.users.test_reporter import TestReporter
 from tests.base import BaseTest
 from tests.test_client import CustomTestClient
+from app.middlewares.error_handler import APIError
 
 @pytest.fixture
 def client(app):
@@ -120,6 +121,13 @@ def setup_base_test(base_test, app, database, client):
     # 清理操作
     with app.app_context():
         db.session.remove()
+
+@pytest.fixture
+def test_error_handler():
+    """测试错误处理器"""
+    def raise_api_error(message, status_code=400):
+        raise APIError(message, status_code)
+    return raise_api_error
 
 def pytest_sessionstart(session):
     """测试会话开始时初始化"""

@@ -43,16 +43,14 @@ class TestCatRoutes:
             
             response = client.post(
                 '/api/v1/cats',
-                data=json.dumps({
+                data={
                     'name': 'New Cat',
                     'age': 2,
                     'breed': 'Test Breed',
                     'description': '',
                     'is_adopted': False,
-                    'user_id': 1,
-                    'created_at': datetime.utcnow().isoformat(),
-                    'updated_at': datetime.utcnow().isoformat()
-                }),
+                    'user_id': 1
+                },
                 auth_token='test_token_123'
             )
             
@@ -74,14 +72,13 @@ class TestCatRoutes:
             mock_update.return_value = Cat(id=1, name='Updated Cat', age=4)
             response = client.put(
                 '/api/v1/cats/1',
-                data=json.dumps({
+                data={
                     'name': 'Updated Cat', 
                     'age': 4,
                     'breed': 'Test Breed',
                     'description': '',
-                    'is_adopted': False,
-                    'updated_at': datetime.utcnow().isoformat()
-                }),
+                    'is_adopted': False
+                },
                 auth_token='test_token'
             )
             assert response.status_code == 200

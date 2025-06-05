@@ -2,6 +2,43 @@
 from functools import wraps
 from flask import redirect, url_for, flash
 from flask_login import current_user
+from sqlalchemy import inspect
+from app.models import db
+
+def owner_required(model, id_param: str = 'id'):
+    """验证当前用户是否是资源所有者
+    Args:
+        model: SQLAlchemy模型类
+        id_param: URL参数中资源ID的键名
+    """
+    """验证当前用户是否是资源所有者"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # 获取资源ID
+            resource_id = kwargs.get(id_param)
+            if not resource_id:
+                flash('缺少资源ID', 'error')
+                return redirect(url_for('main.home'))
+                
+            # 查询资源
+            resource = model.query.get(resource_id)
+            if not resource:
+                flash('资源不存在', 'error')
+                return redirect(url_for('main.home'))
+                
+            # 检查所有者
+            if not hasattr(resource, 'user_id'):
+                flash('无效的资源类型', 'error')
+                return redirect(url_for('main.home'))
+                
+            if current_user.id != resource.user_id and not current_user.is_admin:
+                flash('无权访问该资源', 'error')
+                return redirect(url_for('main.home'))
+                
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 import logging
 
 logger = logging.getLogger(__name__)

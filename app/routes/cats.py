@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, request, current_app, flash, make_response, jsonify
 from ..extensions import csrf  # 导入CSRF扩展
+from app.middlewares.error_handler import APIError
 from flask.wrappers import Response
 from pathlib import Path
 from flask_login import login_required, current_user
@@ -10,11 +11,26 @@ from datetime import datetime
 from ..services.cat_service import CatService
 from ..services.user_service import UserService
 from ..forms import CatForm
-from ..decorators import admin_required
+from ..decorators import admin_required, owner_required
 from ..models import CatImage, Cat
+from ..core.base_crud import BaseCRUD
 
 bp = Blueprint('cats', __name__, url_prefix='/cats')
 api_bp = Blueprint('cats_api', __name__, url_prefix='/api/v1/cats')
+
+# 初始化BaseCRUD
+cat_crud = BaseCRUD(
+    service=CatService(db),
+    model_name='cat',
+    list_template='search.html',
+    detail_template='cat_detail.html',
+    edit_template='edit_cat.html',
+    list_route='cats.admin_cats_list',
+    detail_route='cats.admin_detail',
+    create_route='cats.admin_cats_create',
+    edit_route='cats.admin_cats_edit',
+    delete_route='cats.admin_cats_delete'
+)
 
 # Web界面路由
 @bp.route('/search')
@@ -45,16 +61,15 @@ def search() -> Response:
 @bp.route('/admin/detail/<int:id>')
 @login_required
 @admin_required
-def admin__detail(id: int) -> Response:
-    cat_service = CatService(db)
-    cat = cat_service.get_cat(id)
-    if not cat:
-        flash('猫咪不存在', 'error')
-        return make_response(redirect(url_for('main.home')))
-    return make_response(render_template('cat_detail.html', 
-                        cat=cat,
-                        is_admin=current_user.is_admin,
-                        is_owner=current_user.id == cat.user_id))
+def admin_detail(id: int) -> Response:
+    """管理员查看猫咪详情(使用BaseCRUD)"""
+    return cat_crud.detail(
+        id=id,
+        additional_context={
+            'is_admin': current_user.is_admin,
+            'is_owner': lambda cat: current_user.id == cat.user_id
+        }
+    )
 
 # API路由 - 获取单个猫咪
 @api_bp.route('/<int:id>', methods=['GET'])
@@ -304,26 +319,22 @@ def api_cats_delete(id):
 # Web管理路由 - 删除猫咪
 @bp.route('/delete/<int:id>', methods=['POST'], endpoint='admin_cats_delete')
 @login_required
+@admin_required
+@owner_required(model=Cat, id_param='id')
 def cats_delete(id):
-    """删除猫咪"""
-    try:
-        cat = CatService(db).get_cat(cat_id=id)
-        if not cat:
-            return jsonify({'error': '猫咪不存在'}), 404
-            
-        # 删除关联图片
+    """删除猫咪(需要管理员或所有者权限)"""
+    def delete_images(cat):
         for image in cat.images:
             image_path = Path(str(current_app.static_folder)) / image.url.lstrip('/static/')
             if image_path.exists():
                 image_path.unlink()
-                
-        # 删除记录
-        CatService(db).delete_cat(id)
-        flash('猫咪删除成功!', 'success')
-        return redirect(url_for('cats.admin_cats_list'))
-    except Exception as e:
-        current_app.logger.error(f'删除猫咪失败: {str(e)}')
-        return jsonify({'error': str(e)}), 500
+    
+    return cat_crud.delete(
+        id=id,
+        before_delete=delete_images,
+        success_message='猫咪删除成功!',
+        error_message='删除失败: {}'
+    )
 
 # API路由 - 搜索猫咪
 @api_bp.route('/search', methods=['GET'])

@@ -79,11 +79,16 @@ class TestCatService:
             assert cat_service.delete(cat.id) is True
             assert cat_service.get(Cat, cat.id) is None
             
-    def test_image_handling(self, cat_service, app):
+    def test_image_handling(self, cat_service, app, tmp_path):
         """测试图片处理"""
         with app.app_context():
+            # 创建临时上传目录
+            upload_dir = tmp_path / "uploads"
+            upload_dir.mkdir()
+            app.config['UPLOAD_FOLDER'] = str(upload_dir)
+
             cat = CatFactory().make_instance(user_id=1)
-            
+
             # 测试有效图片
             valid_file = FileStorage(
                 stream=BytesIO(b'test'),
