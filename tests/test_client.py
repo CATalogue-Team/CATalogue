@@ -1,5 +1,8 @@
 import json
 from werkzeug.datastructures import Headers
+import werkzeug
+if not hasattr(werkzeug, '__version__'):
+    werkzeug.__version__ = '3.0.0'  # 设置默认版本
 
 class CustomTestClient:
     """增强的测试客户端，支持CSRF token和常用测试方法"""

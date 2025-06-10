@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from flask import Flask, url_for
-from werkzeug.datastructures import ImmutableDict
 
 from app.core.base_crud import BaseCRUD
 

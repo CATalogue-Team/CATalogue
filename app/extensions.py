@@ -18,7 +18,15 @@ def init_app(app):
     app.config['BABEL_DEFAULT_LOCALE'] = 'zh'
     app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
 csrf = CSRFProtect()
+
+# 配置限流存储
+from redis import Redis
+import os
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+storage_uri = redis_url if os.getenv('FLASK_ENV') == 'production' else 'memory://'
+
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri=storage_uri
 )

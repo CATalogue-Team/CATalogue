@@ -132,3 +132,61 @@ class TestEnvironmentChecker:
         
         checker.register_cli_commands()
         assert app.cli.add_command.called
+
+    def test_redis_connection(self):
+        """测试Redis连接检查"""
+        app = Flask(__name__)
+        app.config['FLASK_ENV'] = 'production'
+        checker = EnvironmentChecker(app)
+        
+        with patch('redis.Redis.ping', return_value=True):
+            assert checker._check_redis() is True
+            
+        with patch('redis.Redis.ping', side_effect=Exception("Redis error")):
+            assert checker._check_redis() is False
+
+    def test_database_performance(self):
+        """测试数据库性能检查"""
+        app = Flask(__name__)
+        app.config['FLASK_ENV'] = 'production'
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_size': 5}
+        app.extensions = {
+            'sqlalchemy': {
+                'db': MagicMock()
+            }
+        }
+        checker = EnvironmentChecker(app)
+        
+        # 模拟基础连接检查通过
+        with patch.object(checker.app.extensions['sqlalchemy']['db'].session, 
+                         'execute', return_value=MagicMock()):
+            # 生产环境性能检查
+            assert checker._check_database() is True
+            
+        # 模拟基础连接检查失败
+        with patch.object(checker.app.extensions['sqlalchemy']['db'].session,
+                         'execute', side_effect=Exception("DB error")):
+            assert checker._check_database() is False
+            
+        # 模拟无SQLAlchemy扩展
+        app.extensions = {}
+        assert checker._check_database() is False
+
+    def test_rate_limit_config(self):
+        """测试限流配置检查"""
+        app = Flask(__name__)
+        app.extensions = {
+            'limiter': MagicMock(enabled=True)
+        }
+        checker = EnvironmentChecker(app)
+        
+        # 测试启用状态
+        assert checker._check_rate_limit() is True
+        
+        # 测试禁用状态
+        app.extensions['limiter'].enabled = False
+        assert checker._check_rate_limit() is False
+        
+        # 测试无limiter扩展
+        app.extensions = {}
+        assert checker._check_rate_limit() is False

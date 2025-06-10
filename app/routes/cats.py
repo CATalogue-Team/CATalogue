@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 from .. import limiter, db
 from werkzeug.utils import secure_filename
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from ..services.cat_service import CatService
 from ..services.user_service import UserService
 from ..forms import CatForm
@@ -45,7 +45,7 @@ def search() -> Response:
     }
     
     cat_service = CatService(db)
-    cats = cat_service.search_cats(
+    cats = cat_service.search(
         keyword=search_params['q'],
         breed=search_params['breed'],
         min_age=search_params['min_age'],
@@ -76,7 +76,7 @@ def admin_detail(id: int) -> Response:
 @login_required
 def api_cats_get(id):
     """获取单个猫咪(API)"""
-    cat = CatService(db).get_cat(id)
+    cat = CatService(db).get(id)
     if not cat:
         return jsonify({'error': 'Cat not found'}), 404
     return jsonify({
@@ -93,7 +93,7 @@ def api_cats_get(id):
 @login_required
 def api_cats_list():
     """获取猫咪列表(API)"""
-    items = CatService(db).get_all_cats()
+    items = CatService(db).search()
     if not isinstance(items, list) or (items and not hasattr(items[0], 'id')):
         current_app.logger.error(f"Invalid cats data type: {type(items)}")
         items = []
@@ -113,7 +113,7 @@ def cats_list():
     """猫咪列表"""
     page = request.args.get('page', 1, type=int)
     per_page = current_app.config.get('ITEMS_PER_PAGE', 10)
-    items = CatService(db).get_all_cats()
+    items = CatService(db).search()
     if not isinstance(items, list) or (items and not hasattr(items[0], 'id')):
         current_app.logger.error(f"Invalid cats data type: {type(items)}")
         items = []
@@ -184,8 +184,8 @@ def api_cats_create():
                 description=data.get('description', ''),
                 is_adopted=bool(data.get('is_adopted', False)),
                 user_id=user_id,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+    created_at=datetime.now(timezone.utc),
+    updated_at=datetime.now(timezone.utc)
             )
             current_app.logger.debug(f"Created cat: {cat.id}")
         return jsonify({
@@ -262,7 +262,7 @@ def api_cats_update(id):
             age=data.get('age'),
             description=data.get('description'),
             is_adopted=data.get('is_adopted'),
-            updated_at=datetime.utcnow()
+    updated_at=datetime.now(timezone.utc)
         )
         if not cat:
             return jsonify({'error': 'Cat not found'}), 404
@@ -281,7 +281,7 @@ def api_cats_update(id):
 @login_required
 def cats_edit(id):
     """编辑猫咪"""
-    cat = CatService(db).get_cat(cat_id=id)
+    cat = CatService(db).get(id)
     if not cat:
         flash('猫咪不存在', 'danger')
         return redirect(url_for('cats.admin_cats_list'))
@@ -310,8 +310,11 @@ def cats_edit(id):
 def api_cats_delete(id):
     """删除猫咪(API)"""
     try:
-        CatService(db).delete_cat(id)
-        return '', 204
+        # 检查删除是否成功
+        if CatService(db).delete_cat(id):
+            return '', 204
+        else:
+            return jsonify({'error': 'Cat not found'}), 404
     except Exception as e:
         current_app.logger.error(f'API删除猫咪失败: {str(e)}')
         return jsonify({'error': str(e)}), 500
@@ -349,7 +352,7 @@ def api_cats_search():
         'is_adopted': request.args.get('is_adopted', type=lambda x: x == 'true')
     }
     
-    cats = CatService(db).search_cats(
+    cats = CatService(db).search(
         keyword=search_params['q'],
         breed=search_params['breed'],
         min_age=search_params['min_age'],
@@ -383,7 +386,7 @@ def api_cats_upload_image(id: int):
         current_app.logger.error("Invalid content type for image upload")
         return jsonify({'error': 'Content-Type must be multipart/form-data'}), 400
     
-    cat = CatService(db).get_cat(id)
+    cat = CatService(db).get(id)
     if not cat:
         return jsonify({'error': 'Cat not found'}), 404
             
@@ -406,7 +409,7 @@ def api_cats_upload_image(id: int):
             url=f"/static/uploads/{filename}",
             cat_id=id,
             is_primary=False,
-            created_at=datetime.utcnow()
+    created_at=datetime.now(timezone.utc)
         )
         db.session.add(cat_image)
         db.session.commit()
