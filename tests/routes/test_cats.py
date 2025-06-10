@@ -3,7 +3,7 @@ import json
 from unittest.mock import patch, MagicMock
 from flask import jsonify, current_app
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.models import Cat
 from app.services.cat_service import CatService
@@ -34,8 +34,8 @@ class TestCatRoutes:
                 breed='Test Breed', 
                 description='', 
                 is_adopted=False,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
             )
             mock_create.return_value = mock_cat
             

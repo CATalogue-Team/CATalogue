@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from itsdangerous import URLSafeTimedSerializer as Serializer
 from flask import current_app
 from typing import Optional
@@ -22,7 +22,7 @@ class User(Base, UserMixin):
     password_hash = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     status = db.Column(db.String(20), default='pending', nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     last_login = db.Column(db.DateTime)
     approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     
@@ -40,7 +40,7 @@ class User(Base, UserMixin):
         s = Serializer(current_app.config['SECRET_KEY'])
         return s.dumps({
             'id': self.id,
-            'exp': datetime.utcnow().timestamp() + expiration
+            'exp': datetime.now(timezone.utc).timestamp() + expiration
         })
     
     def __repr__(self):
@@ -63,7 +63,7 @@ class CatImage(Base):
     id = db.Column(db.Integer, primary_key=True)
     url = db.Column(db.String(200), nullable=False)
     is_primary = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     cat_id = db.Column(db.Integer, db.ForeignKey('cats.id'), nullable=False)
     
     def __init__(self, **kwargs):
@@ -87,8 +87,8 @@ class Cat(Base):
     age = db.Column(db.Integer)
     description = db.Column(db.Text)
     is_adopted = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = db.Column(db.DateTime, onupdate=lambda: datetime.now(timezone.utc))
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # 关系定义
@@ -124,7 +124,7 @@ class EnvironmentCheck(Base):
     check_name = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(20), nullable=False)
     message = db.Column(db.Text)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     def __repr__(self):
         return f'<EnvironmentCheck {self.check_name}: {self.status}>'

@@ -1,0 +1,91 @@
+> from flask import render_template, redirect, url_for, flash, make_response, Response
+> from flask_login import current_user
+> from functools import wraps
+> from typing import Callable, Any, Optional, Union, Dict
+> from pathlib import Path
+> import logging
+  
+> class BaseCRUD:
+>     """提供标准CRUD操作的基类"""
+      
+>     def __init__(
+>         self,
+>         service: Any,
+>         model_name: str,
+>         list_template: str,
+>         detail_template: str,
+>         edit_template: str,
+>         list_route: str,
+>         detail_route: str,
+>         create_route: str,
+>         edit_route: str,
+>         delete_route: str
+>     ):
+>         self.service = service
+>         self.model_name = model_name
+>         self.list_template = list_template
+>         self.detail_template = detail_template
+>         self.edit_template = edit_template
+>         self.list_route = list_route
+>         self.detail_route = detail_route
+>         self.create_route = create_route
+>         self.edit_route = edit_route
+>         self.delete_route = delete_route
+>         self.logger = logging.getLogger(__name__)
+  
+>     def detail(
+>         self,
+>         id: int,
+>         additional_context: Optional[Dict[str, Any]] = None
+>     ) -> 'Response':
+>         """获取详情页
+>         Args:
+>             id: 资源ID
+>             additional_context: 额外上下文数据
+>         Returns:
+>             Response: Flask响应对象
+>         """
+>         try:
+>             item = self.service.get(id)
+>             if not item:
+>                 flash(f'{self.model_name.capitalize()}不存在', 'error')
+>                 return make_response(redirect(url_for(self.list_route)))
+              
+>             context = {
+>                 self.model_name: item,
+>                 'edit_url': url_for(self.edit_route, id=id),
+>                 'delete_url': url_for(self.delete_route, id=id)
+>             }
+>             if additional_context:
+!                 context.update(additional_context)
+              
+>             return make_response(render_template(self.detail_template, **context))
+>         except Exception as e:
+>             self.logger.error(f"获取{self.model_name}详情失败: {str(e)}")
+>             flash(f'获取详情失败: {str(e)}', 'danger')
+>             return make_response(redirect(url_for(self.list_route)))
+  
+>     def delete(
+>         self,
+>         id: int,
+>         before_delete: Optional[Callable[[Any], None]] = None,
+>         success_message: str = '删除成功!',
+>         error_message: str = '删除失败: {}'
+>     ):
+>         """删除操作"""
+>         try:
+>             item = self.service.get(id)
+>             if not item:
+>                 flash(f'{self.model_name.capitalize()}不存在', 'error')
+>                 return make_response(redirect(url_for(self.list_route)))
+              
+>             if before_delete:
+>                 before_delete(item)
+                  
+>             self.service.delete(id)
+>             flash(success_message, 'success')
+>             return make_response(redirect(url_for(self.list_route)))
+!         except Exception as e:
+!             self.logger.error(f"删除{self.model_name}失败: {str(e)}")
+!             flash(error_message.format(str(e)), 'danger')
+!             return make_response(redirect(url_for(self.list_route)))

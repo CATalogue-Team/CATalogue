@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "CATalogue"
+version = "1.0.0"
+description = "CATalogue web application"
+requires-python = ">=3.8"
+dependencies = [
+    "flask",
+    "pytest",
+    "pytest-cov"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*", "tests*"]
+exclude = ["static*", "templates*", "migrations*", "translations*", "uploads*", "logs*", "instance*"]

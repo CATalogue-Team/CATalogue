@@ -86,13 +86,19 @@ def register():
     
     # 处理表单请求
     form = RegisterForm()
-    if form.validate_on_submit():
+    if request.method == 'POST':
+        if not form.validate():
+            return render_template('register.html', form=form), 400
+            
         try:
             if not form.password.data:
                 raise ValueError('密码不能为空')
+            # 表单验证已确保username存在，这里添加类型断言
+            username = str(form.username.data)
+            password = str(form.password.data)
             UserService(db).create_user(
-                password=str(form.password.data),
-                username=form.username.data,
+                password=password,
+                username=username,
                 is_admin=False,
                 status='pending'
             )
@@ -100,8 +106,10 @@ def register():
             return redirect(url_for('auth.login'))
         except ValueError as e:
             flash(f'注册失败: {str(e)}', 'danger')
+            return render_template('register.html', form=form), 400
         except Exception as e:
             current_app.logger.error(f"用户注册异常: {str(e)}")
             flash('注册失败，请稍后再试', 'danger')
+            return render_template('register.html', form=form), 500
     
     return render_template('register.html', form=form)

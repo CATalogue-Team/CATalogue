@@ -1,0 +1,156 @@
+  
+> from typing import List, Optional, Type
+> from .. import db
+> from ..models import User
+> from .base_service import BaseService
+  
+> class UserService(BaseService):
+>     """用户服务层"""
+>     def __init__(self, db):
+>         super().__init__(db)
+          
+>     model = User  # 定义模型类
+      
+>     def get_user(self, id: int) -> Optional[User]:
+>         """获取单个用户信息
+>         参数:
+>             id: 用户ID
+>         返回:
+>             用户对象或None
+>         """
+!         return self.get(model=User, id=id)
+      
+>     def get_user_by_username(self, username: str) -> Optional[User]:
+>         """通过用户名获取用户
+>         参数:
+>             username: 用户名
+>         返回:
+>             用户对象或None
+>         """
+>         from app import db
+>         return db.session.query(User).filter_by(username=username).first()
+      
+>     def get_pending_users(self) -> List[User]:
+>         """获取待审批用户列表
+>         返回:
+>             待审批用户列表
+>         """
+!         from app import db
+!         return db.session.query(User).filter_by(status='pending').all()
+      
+>     def get_all_users(self) -> List[User]:
+>         """获取所有用户
+>         返回:
+>             所有用户列表
+>         """
+!         from app import db
+!         return db.session.query(User).all()
+          
+>     def get_paginated_users(self, page: int = 1, per_page: int = 10, search: Optional[str] = None):
+>         """
+>         获取分页用户列表
+>         参数:
+>             page: 当前页码
+>             per_page: 每页记录数
+>             search: 搜索关键词(用户名)
+>         返回:
+>             Pagination分页对象
+>         """
+!         filters = {}
+!         if search:
+!             filters['username__ilike'] = f'%{search}%'
+              
+!         return self.get_paginated(
+!             model=User,
+!             page=page,
+!             per_page=per_page,
+!             order_by='-created_at',
+!             **filters
+!         )
+      
+>     def create_user(self, username: str, password: str, **kwargs) -> User:
+>         """
+>         创建用户账号
+>         参数:
+>             username: 用户名
+>             password: 明文密码
+>             **kwargs: 其他用户属性
+>         """
+>         if not username or not password:
+>             raise ValueError("用户名和密码不能为空")
+              
+          # 检查用户名是否已存在
+>         if self.get_user_by_username(username):
+>             raise ValueError("用户名已存在")
+              
+>         user = User(username=username, **kwargs)
+>         user.set_password(password)
+>         db.session.add(user)
+>         db.session.commit()
+>         return user
+      
+>     def approve_user(self, user_id: int, approved_by: int) -> bool:
+>         """审批用户账号
+>         参数:
+>             user_id: 用户ID
+>             approved_by: 审批人ID
+>         返回:
+>             是否审批成功
+>         """
+!         from app import db
+!         if user_id == approved_by:
+!             return False
+              
+!         user = db.session.query(User).get(user_id)
+!         if not user:
+!             return False
+              
+!         user.status = 'approved'
+!         user.approved_by = approved_by
+!         self.update(model=User, id=user_id, status='approved', approved_by=approved_by)
+!         return True
+      
+>     def reject_user(self, user_id: int, current_user_id: Optional[int] = None) -> bool:
+>         """拒绝用户账号
+>         参数:
+>             user_id: 用户ID
+>             current_user_id: 当前用户ID
+>         返回:
+>             是否拒绝成功
+>         """
+!         from app import db
+!         if current_user_id and user_id == current_user_id:
+!             return False
+              
+!         user = db.session.query(User).get(user_id)
+!         if not user:
+!             return False
+              
+!         user.status = 'rejected'
+!         self.update(model=User, id=user_id, status='rejected')
+!         return True
+      
+>     def update_user_role(self, user_id: int, is_admin: bool, current_user_id: Optional[int] = None) -> bool:
+>         """更新用户角色
+>         参数:
+>             user_id: 用户ID
+>             is_admin: 是否管理员
+>             current_user_id: 当前用户ID
+>         返回:
+>             是否更新成功
+>         """
+!         if current_user_id and user_id == current_user_id:
+!             return False
+!         return self.update(model=User, id=user_id, is_admin=is_admin) is not None
+      
+>     def delete_user(self, user_id: int, current_user_id: Optional[int] = None) -> bool:
+>         """删除用户
+>         参数:
+>             user_id: 用户ID
+>             current_user_id: 当前用户ID
+>         返回:
+>             是否删除成功
+>         """
+!         if current_user_id and user_id == current_user_id:
+!             return False
+!         return self.delete(model=User, id=user_id)

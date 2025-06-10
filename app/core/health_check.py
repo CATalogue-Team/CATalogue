@@ -170,11 +170,16 @@ class EnvironmentChecker:
     def _check_dependencies(self) -> bool:
         """检查依赖包是否安装"""
         try:
-            import pkg_resources
-            with open('requirements.txt') as f:
-                requirements = pkg_resources.parse_requirements(f)
-                for req in requirements:
-                    pkg_resources.require(str(req))
+            from importlib.metadata import requires, PackageNotFoundError
+            package_name = self.app.import_name  # 使用应用名称作为包名
+            try:
+                reqs = requires(package_name) or []
+                for req in reqs:
+                    if not any(req.startswith(dep.split('==')[0]) for dep in req.split(';')):
+                        raise ImportError(f"依赖不满足: {req}")
+            except PackageNotFoundError:
+                self.logger.warning(f"无法找到包元数据: {package_name}")
+                return False
             return True
         except Exception as e:
             self.logger.error(f"依赖检查失败: {str(e)}")

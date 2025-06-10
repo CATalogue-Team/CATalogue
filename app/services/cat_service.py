@@ -244,18 +244,18 @@ class CatService(BaseService):
     def get_cat_stats(self) -> Dict[str, Any]:
         """获取猫咪统计信息"""
         stats = {
-            'total': db.session.query(Cat).count(),
-            'by_breed': dict(db.session.query(Cat.breed, db.func.count(Cat.id))
+            'total': self.db.session.query(Cat).count(),
+            'by_breed': dict(self.db.session.query(Cat.breed, db.func.count(Cat.id))
                             .group_by(Cat.breed).all()),
             'by_adoption': {
-                'adopted': db.session.query(Cat).filter(Cat.is_adopted == True).count(),
-                'not_adopted': db.session.query(Cat).filter(Cat.is_adopted == False).count()
+                'adopted': self.db.session.query(Cat).filter(Cat.is_adopted == True).count(),
+                'not_adopted': self.db.session.query(Cat).filter(Cat.is_adopted == False).count()
             },
             'age_distribution': {
-                'kitten': db.session.query(Cat).filter(Cat.age == 0).count(),
-                'young': db.session.query(Cat).filter(Cat.age.between(1, 2)).count(),
-                'adult': db.session.query(Cat).filter(Cat.age.between(3, 6)).count(),
-                'senior': db.session.query(Cat).filter(Cat.age >= 7).count()
+                'kitten': self.db.session.query(Cat).filter(Cat.age == 0).count(),
+                'young': self.db.session.query(Cat).filter(Cat.age.between(1, 2)).count(),
+                'adult': self.db.session.query(Cat).filter(Cat.age.between(3, 6)).count(),
+                'senior': self.db.session.query(Cat).filter(Cat.age >= 7).count()
             }
         }
         return stats
