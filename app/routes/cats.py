@@ -255,8 +255,9 @@ def api_cats_update(id):
         return jsonify({'error': 'Request body must be a JSON object'}), 400
     
     try:
-        cat = CatService(db).update_cat(
+        cat = CatService(db).update(
             id,
+            current_user.id,
             name=data.get('name'),
             breed=data.get('breed'),
             age=data.get('age'),
@@ -296,7 +297,10 @@ def cats_edit(id):
                 'description': form.description.data,
                 'is_adopted': form.is_adopted.data
             }
-            CatService(db).update_cat(id, **update_data)
+            CatService(db).update(
+                id,
+                current_user.id,
+                **update_data)
             flash('猫咪更新成功!', 'success')
             return redirect(url_for('cats.admin_cats_list'))
         except Exception as e:
@@ -311,7 +315,7 @@ def api_cats_delete(id):
     """删除猫咪(API)"""
     try:
         # 检查删除是否成功
-        if CatService(db).delete_cat(id):
+        if CatService(db).delete(id, current_user.id):
             return '', 204
         else:
             return jsonify({'error': 'Cat not found'}), 404
@@ -353,7 +357,7 @@ def api_cats_search():
     }
     
     cats = CatService(db).search(
-        keyword=search_params['q'],
+        query=search_params['q'],
         breed=search_params['breed'],
         min_age=search_params['min_age'],
         max_age=search_params['max_age'],

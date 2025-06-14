@@ -1,3 +1,4 @@
+# ================ 文件类型分类 ================
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -5,6 +6,37 @@ __pycache__/
 
 # C extensions
 *.so
+
+# ================ 测试相关 ================
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# ================ 项目特定 ================
+# 日志文件
+logs/
+
+# 上传文件
+static/uploads/
+
+# Flask实例配置
+instance/
+
+# ================ 编辑器临时文件 ================
+*.swp
+*.swo
+*.un~
+.~lock.*
+
+# ================ 操作系统特定 ================
+.DS_Store
+Thumbs.db
 
 # Distribution / packaging
 .Python
@@ -106,12 +138,13 @@ venv.bak/
 .vscode/
 .idea/
 .clinerules/
+
 # Database
 *.db
 *.sqlite
 
 # Logs
-*.log
+*.log*
 logs/
 
 # Flask
@@ -119,6 +152,9 @@ migrations/
 
 # Coverage
 htmlcov/
+.coverage
+.coverage.*
+.cover
 
 # Uploads
 static/uploads/
@@ -131,6 +167,15 @@ test_result*.txt
 # Local development
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+*.un~
+
+# Python type checking
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints/
 
 # Project specific
 instance/
