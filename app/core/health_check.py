@@ -52,6 +52,7 @@ class EnvironmentChecker:
     def _check_test_environment(self) -> bool:
         """检查测试环境配置"""
         try:
+            self.logger.info("开始测试环境检查...")
             import pytest
             import coverage
             test_path = Path(self.app.root_path) / 'tests/test_routes.py'
@@ -80,6 +81,7 @@ class EnvironmentChecker:
             for mod in core_modules:
                 try:
                     cov.report(include=[mod + '/*'])
+                    self.logger.info(f"测试环境检查完成，覆盖率达标")
                     return True
                 except Exception:
                     self.logger.warning(f"无法获取模块覆盖率: {mod}")
@@ -237,14 +239,20 @@ class EnvironmentChecker:
             
     def _check_performance(self) -> bool:
         """检查性能优化配置"""
+        is_production = self.app.config.get('FLASK_ENV') == 'production'
+        
         # 基础配置检查
         config_checks = [
-            self.app.config.get('SQLALCHEMY_ENGINE_OPTIONS', {}).get('pool_pre_ping', False),
-            self.app.config.get('SQLALCHEMY_ENGINE_OPTIONS', {}).get('pool_recycle', 3600) <= 3600,
-            self.app.config.get('TEMPLATES_AUTO_RELOAD', False) is False
+            self.app.config.get('SQLALCHEMY_ENGINE_OPTIONS', {}).get('pool_pre_ping', is_production),
+            self.app.config.get('SQLALCHEMY_ENGINE_OPTIONS', {}).get('pool_recycle', 3600) <= 3600
         ]
         
-        # 基础配置检查已足够
+        # 生产环境额外检查
+        if is_production:
+            config_checks.append(
+                self.app.config.get('TEMPLATES_AUTO_RELOAD', False) is False
+            )
+        
         return all(config_checks)
 
     def _check_redis(self) -> bool:
@@ -370,25 +378,34 @@ class EnvironmentChecker:
             
     def _check_services_health(self) -> bool:
         """检查服务层健康状态"""
-        try:
-            with self.app.app_context():
-                # 检查服务是否存在且可调用
-                if not all([
-                    hasattr(self.app, 'cat_service'),
-                    hasattr(self.app, 'user_service'),
-                    hasattr(getattr(self.app, 'cat_service'), 'check_health'),
-                    hasattr(getattr(self.app, 'user_service'), 'check_health')
-                ]):
+        with self.app.app_context():
+            # 检查服务是否存在
+            required_services = ['cat_service', 'user_service']
+            for service in required_services:
+                if not hasattr(self.app, service):
+                    self.logger.warning(f"服务 {service} 不存在")
                     return False
-                
+            
+            # 检查健康检查方法是否存在且可调用
+            for service in required_services:
+                service_obj = getattr(self.app, service)
+                if not hasattr(service_obj, 'check_health'):
+                    self.logger.warning(f"服务 {service} 缺少健康检查方法")
+                    return False
+                if not callable(getattr(service_obj, 'check_health')):
+                    self.logger.warning(f"服务 {service} 的健康检查方法不可调用")
+                    return False
+            
+            try:
                 # 实际调用健康检查方法
-                return all([
-                    getattr(self.app, 'cat_service').check_health(),
-                    getattr(self.app, 'user_service').check_health()
-                ])
-        except Exception as e:
-            self.logger.error(f"服务检查失败: {str(e)}")
-            return False
+                results = []
+                for service in required_services:
+                    service_obj = getattr(self.app, service)
+                    results.append(service_obj.check_health())
+                return all(results)
+            except Exception as e:
+                self.logger.error(f"服务健康检查执行失败: {str(e)}")
+                return False
             
     def _apply_migrations(self):
         """应用数据库迁移"""

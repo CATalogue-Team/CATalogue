@@ -2,31 +2,28 @@ import pytest
 from unittest.mock import MagicMock
 from app.services.cat_service import CatService
 from app.models import Cat
+from sqlalchemy.exc import SQLAlchemyError
 
 @pytest.fixture
 def mock_db():
     db = MagicMock()
     session = MagicMock()
     
-    # 配置session方法
     session.commit = MagicMock(return_value=None)
     session.rollback = MagicMock(return_value=None)
     session.db = db
     db.session = session
     
-    # 配置查询方法
     session.query = MagicMock()
     session.query.return_value.filter_by = MagicMock()
     session.query.return_value.filter_by.return_value.first = MagicMock(return_value=None)
     
-    # 配置其他方法
     session.get = MagicMock()
     session.add = MagicMock()
     session.flush = MagicMock()
     session.expunge = MagicMock()
     session.delete = MagicMock(return_value=True)
     
-    # 配置事务方法
     session.begin = MagicMock(return_value=session)
     session.__enter__ = MagicMock(return_value=session)
     session.__exit__ = MagicMock(return_value=None)
@@ -39,7 +36,8 @@ def cat_service(mock_db):
     service.db = mock_db
     return service
 
-class TestCatService:
+@pytest.mark.crud
+class TestCatCRUD:
     def test_create_cat_empty_name(self, cat_service, mock_db):
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = None
         with pytest.raises(ValueError):
@@ -51,15 +49,10 @@ class TestCatService:
         assert cat.age == 30
 
     def test_create_cat_db_rollback(self, cat_service, mock_db):
-        # 设置commit抛出异常
         mock_db.session.commit.side_effect = Exception("DB Error")
-
         with pytest.raises(Exception):
             cat_service.create_cat(user_id=1, name='RollbackCat', age=3)
-
-        # 验证commit被调用但抛出异常
         mock_db.session.commit.assert_called_once()
-        # 验证rollback被调用
         mock_db.session.rollback.assert_called_once()
 
     def test_update_permission_check(self, cat_service, mock_db):

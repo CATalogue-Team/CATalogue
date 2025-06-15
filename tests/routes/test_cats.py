@@ -1,6 +1,6 @@
 import pytest
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, mock_open
 from flask import jsonify, current_app
 from io import BytesIO
 from datetime import datetime, timezone
@@ -111,24 +111,31 @@ class TestCatRoutes:
              patch('app.routes.cats.db.session.commit') as mock_commit, \
              patch('app.routes.cats.current_app') as mock_app:
             
-            mock_get.return_value = Cat(id=1, name='Test Cat')
+            mock_cat = Cat(id=1, name='Test Cat')
+            mock_get.return_value = mock_cat
             mock_app.config = {'UPLOAD_FOLDER': '/tmp/mock_uploads'}
             mock_join.return_value = '/tmp/mock_uploads/test.jpg'
             mock_exists.return_value = True
 
-            # 使用client.post_file直接测试，避免mock request
-            response = client.post_file(
-                '/api/v1/cats/1/image',
-                file_data={'file': (BytesIO(b'test_image_data'), 'test.jpg')},
-                auth_token='test_token'
-            )
-            
-            assert response.status_code == 200
-            assert mock_add.called
-            assert mock_commit.called
-            mock_join.assert_called()
+            with patch('app.routes.cats.secure_filename') as mock_secure, \
+                 patch('app.routes.cats.os.path.join') as mock_join, \
+                 patch('builtins.open', mock_open()) as mock_file:
                 
-    # 新增测试用例
+                mock_secure.return_value = 'test.jpg'
+                mock_join.return_value = '/tmp/mock_uploads/test.jpg'
+                
+                response = client.post_file(
+                    '/api/v1/cats/1/image',
+                    file_data={'file': (BytesIO(b'test_image_data'), 'test.jpg')},
+                    auth_token='test_token'
+                )
+                
+                assert response.status_code == 200
+                assert 'Image uploaded successfully' in response.json['message']
+                assert mock_add.called
+                assert mock_commit.called
+                mock_file.assert_called_once_with('/tmp/mock_uploads/test.jpg', 'wb')
+                
     def test_get_non_existent_cat(self, client):
         """测试获取不存在的猫咪"""
         with patch('app.services.cat_service.CatService.get') as mock_get:
@@ -221,20 +228,24 @@ class TestCatRoutes:
             assert 'No file part' in response.json['error']
         
         # 文件名为空
-        response = client.post_file(
-            '/api/v1/cats/1/image',
-            file_data={'file': (BytesIO(b''), '')},
-            auth_token='test_token'
-        )
-        assert response.status_code == 400
-        assert 'No selected file' in response.json['error']
+        with patch('app.services.cat_service.CatService.get') as mock_get:
+            mock_get.return_value = Cat(id=1, name='Test Cat')
+            response = client.post_file(
+                '/api/v1/cats/1/image',
+                file_data={'file': (BytesIO(b''), '')},
+                auth_token='test_token'
+            )
+            assert response.status_code == 400
+            assert 'No selected file' in response.json['error']
         
-        # 无效内容类型
-        response = client.post(
-            '/api/v1/cats/1/image',
-            data={'file': 'invalid'},
-            content_type='application/json',
-            auth_token='test_token'
-        )
-        assert response.status_code == 400
-        assert 'Content-Type must be multipart/form-data' in response.json['error']
+        # 无效内容类型 - 直接使用app.test_client()测试
+        with patch('app.services.cat_service.CatService.get') as mock_get:
+            mock_get.return_value = Cat(id=1, name='Test Cat')
+            test_client = client.app.test_client()  # 从client获取app实例
+            response = test_client.post(
+                '/api/v1/cats/1/image',
+                data={'file': 'invalid'},
+                headers={'Content-Type': 'application/json'}
+            )
+            assert response.status_code == 400
+            assert 'Content-Type must be multipart/form-data' in response.json['error']

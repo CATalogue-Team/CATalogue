@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import MagicMock
 from contextlib import ExitStack
 from datetime import datetime
 from flask.testing import FlaskClient
@@ -24,8 +25,15 @@ def client(app):
     ctx.pop()
 
 @pytest.fixture(scope='function')
-def database(app):
+def database(request, app):
     """数据库fixture"""
+    # 如果测试标记为no_db则返回mock数据库
+    if request.node.get_closest_marker('no_db'):
+        mock_db = MagicMock()
+        mock_db.session = MagicMock()
+        yield mock_db
+        return
+        
     with app.app_context():
         db.create_all()
         yield db

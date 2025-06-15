@@ -65,6 +65,13 @@ class CatService(BaseService):
             raise ValueError(f"猫咪ID {id} 不存在")
         if cat.user_id != user_id:
             raise PermissionError("无权更新其他用户的猫咪信息")
+            
+        # 验证年龄范围
+        if 'age' in kwargs:
+            age = kwargs['age']
+            if not isinstance(age, int) or age < 0 or age > 30:
+                raise ValueError("猫咪年龄必须在0-30岁之间")
+                
         # 显式调用父类方法并转换类型
         updated = super().update(type(cat), user_id, **kwargs)
         if not updated:
