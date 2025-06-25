@@ -14,6 +14,11 @@
 >         load_dotenv(env_path)
           
 >     @property
+>     def APP_PORT(self):
+>         """应用端口配置"""
+>         return int(os.getenv('APP_PORT', '5000'))
+          
+>     @property
 >     def SECRET_KEY(self):
 >         return os.getenv('SECRET_KEY', 'dev-key')
           
@@ -50,6 +55,11 @@
 >     @property
 >     def TESTING(self):
 >         return True
+          
+>     @property
+>     def APP_PORT(self):
+>         """测试环境端口"""
+>         return 5001
           
 >     @property
 >     def SQLALCHEMY_DATABASE_URI(self):

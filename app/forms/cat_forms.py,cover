@@ -1,0 +1,76 @@
+> from flask_wtf import FlaskForm
+> from werkzeug.datastructures import FileStorage
+> from wtforms import StringField, TextAreaField, BooleanField, MultipleFileField, IntegerField
+> from wtforms.validators import DataRequired, ValidationError, Length, NumberRange, Optional
+> from werkzeug.datastructures import MultiDict
+  
+> class CatForm(FlaskForm):
+>     name = StringField('猫咪名字', validators=[
+>         DataRequired(message='猫咪名字是必填项'),
+>         Length(min=2, max=100, message='名字长度需在2-100字符之间')
+>     ])
+>     breed = StringField('品种', validators=[
+>         Length(max=50, message='品种长度不能超过50字符'),
+>         Optional()
+>     ])
+>     age = IntegerField('年龄', validators=[
+>         NumberRange(min=0, max=30, message='年龄需在0-30之间的正整数')
+>     ], default=0)
+      
+>     def validate_age(self, field):
+>         if field.data is None:
+>             raise ValidationError('年龄是必填项')
+>         if isinstance(field.data, str) and not field.data.strip():
+!             raise ValidationError('年龄是必填项')
+>         if field.data == 0:
+>             return  # 明确允许0值
+  
+>     description = TextAreaField('描述', validators=[
+>         Length(max=500, message='描述不能超过500字符'),
+>         Optional()
+>     ])
+>     images = MultipleFileField('猫咪图片(可多选)', validators=[
+>         Optional()
+>     ])
+>     is_adopted = BooleanField('已被领养', default=False, validators=[
+>         Optional()
+>     ])
+  
+>     def __init__(self, formdata=None, **kwargs):
+>         data = kwargs.pop('data', None)
+>         if data:
+>             formdata = MultiDict()
+>             for key, value in data.items():
+>                 if key != 'images':
+>                     if key == 'age' and value == 0:
+>                         formdata[key] = 0
+>                     else:
+>                         formdata[key] = value
+>             if 'images' in data and isinstance(data['images'], list):
+!                 files = []
+!                 for img in data['images']:
+!                     if isinstance(img, FileStorage):
+!                         files.append(img)
+!                 formdata.setlist('images', files)
+>         super().__init__(formdata=formdata, **kwargs)
+          
+>     def validate(self, extra_validators=None):
+>         valid = super().validate()
+>         if hasattr(self, 'images') and self.images.data:
+>             for image in self.images.data:
+>                 if not isinstance(image, FileStorage):
+!                     continue
+>                 if not image.filename:
+!                     continue
+>         return valid
+  
+>     def validate_images(self, field):
+>         if field.data:
+>             for image in field.data:
+>                 if not image:
+!                     continue
+>                 filename = image.filename.lower()
+>                 if not (filename.endswith('.jpg') or filename.endswith('.png')):
+>                     raise ValidationError('仅支持JPG/PNG格式图片')
+>                 if image.content_length > 5 * 1024 * 1024:
+>                     raise ValidationError('单张图片大小不能超过5MB')

@@ -1,7 +1,7 @@
 
 from app import create_app, db
 from app.core.scheduler import init_scheduler
-from app.core.health import run_health_checks
+from app.core.health_check import HealthCheck
 from flask_migrate import Migrate
 import sys
 import os
@@ -35,11 +35,17 @@ if __name__ == '__main__':
     
     # 执行环境检查（在应用上下文中）
     with app.app_context():
-        if not run_health_checks(app):
+        health_checker = HealthCheck(app)
+        if not health_checker.run_health_checks():
             print("警告: 部分环境检查未通过", file=sys.stderr)
+            # 可选: 执行自动修复
+            # checks = health_checker.environment_checker.check_dev_environment() if app.config['FLASK_ENV'] == 'development' else health_checker.environment_checker.check_prod_environment()
+            # health_checker.run_auto_repair(checks)
     
     # 运行应用
     app.run(
+        host='0.0.0.0',
+        port=app.config['APP_PORT'],
         debug=app.config['FLASK_DEBUG'],
         use_reloader=app.config['FLASK_ENV'] == 'development'
     )

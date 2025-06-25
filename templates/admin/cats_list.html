@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">
+                <i class="bi bi-list-ul me-2"></i>猫咪管理
+                <a href="{{ url_for('admin_cats.admin_cats_create') }}" class="btn btn-sm btn-light float-end">
+                    <i class="bi bi-plus-circle"></i> 添加猫咪
+                </a>
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>名字</th>
+                            <th>品种</th>
+                            <th>年龄</th>
+                            <th>领养状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cat in cats %}
+                        <tr>
+                            <td>{{ cat.id }}</td>
+                            <td>{{ cat.name }}</td>
+                            <td>{{ cat.breed or '-' }}</td>
+                            <td>{{ cat.age or '-' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if cat.is_adopted else 'warning' }}">
+                                    {{ '已领养' if cat.is_adopted else '待领养' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('admin_cats.admin_cats_edit', id=cat.id) }}" 
+                                       class="btn btn-outline-primary"
+                                       title="编辑猫咪">
+                                        <i class="bi bi-pencil" aria-hidden="true"></i>
+                                        <span class="visually-hidden">编辑</span>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('admin_cats.admin_cats_delete', id=cat.id) }}" 
+                                          class="d-inline">
+                                        <button type="submit" class="btn btn-outline-danger" 
+                                                onclick="return confirm('确定删除这只猫咪吗？')"
+                                                title="删除猫咪">
+                                            <i class="bi bi-trash" aria-hidden="true"></i>
+                                            <span class="visually-hidden">删除</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">暂无猫咪数据</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

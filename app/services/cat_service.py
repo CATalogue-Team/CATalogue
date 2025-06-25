@@ -109,3 +109,7 @@ class CatService(BaseService):
             q = q.filter(self.model.is_adopted == is_adopted)
             
         return q.all()
+
+    def get_all_cats(self) -> List[Cat]:
+        """获取所有猫咪信息"""
+        return self.get_all(self.model)

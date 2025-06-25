@@ -33,19 +33,19 @@
 >     @api.response(401, '无效凭证')
 >     @api.response(403, '账号未审核')
 >     def post(self):
->         data = request.get_json()
->         if not data or not data.get('username') or not data.get('password'):
+!         data = request.get_json()
+!         if not data or not data.get('username') or not data.get('password'):
 !             api.abort(401, 'Invalid credentials')
               
->         user = UserService(db).get_user_by_username(data['username'])
->         if not user or not user.check_password(data['password']):
->             api.abort(401, 'Invalid credentials')
+!         user = UserService(db).get_user_by_username(data['username'])
+!         if not user or not user.check_password(data['password']):
+!             api.abort(401, 'Invalid credentials')
               
->         if user.status != 'approved':
+!         if user.status != 'approved':
 !             api.abort(403, 'Account not approved')
               
->         login_user(user, remember=data.get('remember', False))
->         return {'message': 'Login successful'}, 200
+!         login_user(user, remember=data.get('remember', False))
+!         return {'message': 'Login successful'}, 200
   
 > @api.route('/logout')
 > class Logout(Resource):
@@ -63,22 +63,22 @@
 >     @api.response(400, '无效请求')
 >     @api.response(500, '注册失败')
 >     def post(self):
->         data = request.get_json()
->         if not data:
+!         data = request.get_json()
+!         if not data:
 !             api.abort(400, 'Invalid request')
               
->         try:
->             user = UserService(db).create_user(
->                 password=data.get('password'),
->                 username=data.get('username'),
->                 is_admin=data.get('is_admin', False),
->                 status='pending'
->             )
->             return {
->                 'message': 'Registration successful',
->                 'user_id': user.id
->             }, 201
->         except ValueError as e:
->             api.abort(400, str(e))
+!         try:
+!             user = UserService(db).create_user(
+!                 password=data.get('password'),
+!                 username=data.get('username'),
+!                 is_admin=data.get('is_admin', False),
+!                 status='pending'
+!             )
+!             return {
+!                 'message': 'Registration successful',
+!                 'user_id': user.id
+!             }, 201
+!         except ValueError as e:
+!             api.abort(400, str(e))
 !         except Exception as e:
 !             api.abort(500, 'Registration failed')

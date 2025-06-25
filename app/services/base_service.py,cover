@@ -27,11 +27,11 @@
       
 >     def get(self, model, id: int):
 >         """获取单个记录"""
-!         return self.db.session.get(model, id)
+>         return self.db.session.get(model, id)
       
 >     def get_all(self, model):
 >         """获取所有记录"""
-!         return self.db.session.query(model).all()
+>         return self.db.session.query(model).all()
       
 >     def create(self, model: Type['ModelType'], **kwargs) -> 'ModelType':
 >         """创建记录
@@ -88,13 +88,13 @@
       
 >     def delete(self, model, id: int) -> bool:
 >         """删除记录"""
-!         obj = self.db.session.get(model, id)
-!         if not obj:
+>         obj = self.db.session.get(model, id)
+>         if not obj:
 !             return False
               
-!         self.db.session.delete(obj)
-!         self.db.session.commit()
-!         return True
+>         self.db.session.delete(obj)
+>         self.db.session.commit()
+>         return True
           
 >     def get_paginated(self, model, page=1, per_page=None, order_by=None, **filters):
 >         """

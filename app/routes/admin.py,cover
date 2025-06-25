@@ -24,10 +24,10 @@
 > @login_required
 > def list_cats():
 >     """获取猫咪列表""" 
-!     if not current_user.is_admin:
+>     if not current_user.is_admin:
 !         abort(403)
-!     cats = CatService(db).get_all_cats()
-!     return jsonify([c.to_dict() for c in cats])
+>     cats = CatService(db).get_all_cats()
+>     return jsonify([c.to_dict() for c in cats])
   
 > @bp.route('/approvals', methods=['GET'])
 > @login_required

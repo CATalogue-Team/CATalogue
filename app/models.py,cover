@@ -67,13 +67,13 @@
 >     cat_id = db.Column(db.Integer, db.ForeignKey('cats.id'), nullable=False)
       
 >     def __init__(self, **kwargs):
->         url = kwargs.get('url', '')
->         if not url.startswith('/static/uploads/'):
+!         url = kwargs.get('url', '')
+!         if not url.startswith('/static/uploads/'):
 !             from flask import current_app
 !             filename = url.split('/')[-1]
 !             kwargs['url'] = f'/static/uploads/{filename}'
 !             current_app.logger.warning(f"修正图片URL格式: {url} -> {kwargs['url']}")
->         super().__init__(**kwargs)
+!         super().__init__(**kwargs)
       
 >     def __repr__(self):
 !         return f'<CatImage {self.url}>'
@@ -100,7 +100,7 @@
 !         return next((img.url for img in self.images if img.is_primary), None) if self.images else None
       
 >     def __repr__(self):
-!         return f'<Cat {self.name}>'
+>         return f'<Cat {self.name}>'
   
 >     def to_dict(self):
 >         """将猫咪对象转换为字典"""

@@ -1,7 +1,9 @@
 
 from typing import Type, TypeVar, Optional, TYPE_CHECKING
 from flask import current_app
+import logging
 from .. import db
+logger = logging.getLogger(__name__)
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy.orm import DeclarativeBase
 
@@ -24,6 +26,7 @@ class BaseService:
         self.db = db
         if not hasattr(self.db.session, 'get'):
             raise ValueError("db.session必须支持get方法")
+        logger.info("BaseService initialized with db: %s", db)
     
     def get(self, model, id: int):
         """获取单个记录"""
@@ -53,7 +56,8 @@ class BaseService:
         for column in table.columns:
             if (not column.nullable and 
                 column.default is None and 
-                column.name != 'id'):
+                column.name != 'id' and
+                not column.primary_key):
                 # 检查字段是否在kwargs中或是否有默认值
                 if column.name not in kwargs:
                     required_fields.append(column.name)
@@ -130,8 +134,15 @@ class BaseService:
                 if hasattr(model, order_by):
                     query = query.order_by(getattr(model, order_by))
                     
-        return query.paginate(
-            page=page,
-            per_page=per_page or current_app.config.get('ITEMS_PER_PAGE', 10),
-            error_out=False
-        )
+        try:
+            result = query.paginate(
+                page=page,
+                per_page=per_page or current_app.config.get('ITEMS_PER_PAGE', 10),
+                error_out=False
+            )
+            return result
+        except Exception as e:
+            if self.db.session.is_active:
+                self.db.session.rollback()
+            logger.error(f"分页查询失败: {str(e)}")
+            raise

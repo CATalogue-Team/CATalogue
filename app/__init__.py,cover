@@ -2,6 +2,7 @@
 > from typing import Any, Optional, TypeVar, cast
 > from werkzeug.wrappers import Response as BaseResponse
 > from flask_sqlalchemy import SQLAlchemy
+> from flask_migrate import Migrate
 > from flask_restx import Api, Resource, Namespace, fields
 > from .extensions import db, cache, login_manager, csrf, limiter, babel
 > from app.services.cat_service import CatService
@@ -83,6 +84,7 @@
       
 >     db.init_app(app)
 >     app.db = db  # type: ignore  # 使db实例可通过app访问
+>     migrate = Migrate(app, db)
 >     cache.init_app(app)
 >     login_manager.init_app(app)
 >     csrf.init_app(app)
@@ -103,8 +105,8 @@
 !         )
       
       # 初始化健康检查
->     from app.core.health_check import EnvironmentChecker
->     health_checker = EnvironmentChecker(app)
+>     from app.core.health_check import HealthCheck
+>     health_checker = HealthCheck(app)
 >     health_checker.register_cli_commands()
 >     login_manager.login_view = 'auth.login'  # type: ignore
       
@@ -115,37 +117,20 @@
 >     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
       
       # 注册蓝图 - 先注册API蓝图
->     from .routes import main, auth, admin, cats
->     app.register_blueprint(cats.api_bp)  # 先注册API蓝图
+>     from .routes import main, auth, admin
+>     from .routes.cats import init_app as init_cats
+>     from .api import api_bp
+>     app.register_blueprint(api_bp)  # 注册API蓝图
 >     app.register_blueprint(main.bp)
 >     app.register_blueprint(auth.bp)
 >     app.register_blueprint(admin.bp)
->     app.register_blueprint(cats.bp)
+>     init_cats(app)  # 初始化猫咪路由
   
       # 注册错误处理器
 >     register_error_handlers(app)
   
-      # 初始化Swagger API文档
->     api = Api(
->         app,
->         version='1.0',
->         title='CATalogue API',
->         description='猫咪信息管理系统API文档',
->         doc='/api/docs/',
->         authorizations={
->             'Bearer Auth': {
->                 'type': 'apiKey',
->                 'in': 'header',
->                 'name': 'Authorization'
->             }
->         }
->     )
-  
-      # 注册API命名空间
->     from app.api.auth import api as auth_api
->     from app.api.cats import api as cats_api
->     api.add_namespace(auth_api)
->     api.add_namespace(cats_api)
+      # 初始化Swagger API文档 (已通过api/__init__.py配置)
+      # 保留此空块以兼容现有代码
       
       # 初始化服务(带日志记录)
 >     app.logger.info("正在初始化服务...")
@@ -220,5 +205,5 @@
   
 > @login_manager.user_loader
 > def load_user(user_id):
-!     from app import db
-!     return db.session.query(User).get(int(user_id))
+>     from app import db
+>     return db.session.query(User).get(int(user_id))

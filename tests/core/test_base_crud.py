@@ -1,117 +1,150 @@
 import pytest
-from unittest.mock import MagicMock, patch
-from flask import Flask, url_for
-
+import logging
+from unittest.mock import patch
+from flask import url_for
 from app.core.base_crud import BaseCRUD
-
-@pytest.fixture
-def mock_service():
-    """模拟服务层"""
-    service = MagicMock()
-    service.get.return_value = {'id': 1, 'name': 'Test Item'}
-    service.delete.return_value = True
-    return service
-
-@pytest.fixture
-def test_app():
-    """创建测试Flask应用"""
-    app = Flask(__name__)
-    app.config['TESTING'] = True
-    app.config['SECRET_KEY'] = 'test-secret'
-    
-    # 添加测试路由
-    @app.route('/items')
-    def item_list():
-        return "item list"
-    
-    @app.route('/items/<int:id>')
-    def item_detail(id):
-        return f"item {id}"
-    
-    @app.route('/items/create')
-    def item_create():
-        return "create item"
-    
-    @app.route('/items/<int:id>/edit')
-    def item_edit(id):
-        return f"edit item {id}"
-    
-    @app.route('/items/<int:id>/delete')
-    def item_delete(id):
-        return f"delete item {id}"
-    
-    with app.test_request_context():
-        yield app
-
-@pytest.fixture
-def base_crud(mock_service, test_app):
-    """创建BaseCRUD实例"""
-    with test_app.test_request_context():
-        return BaseCRUD(
-            service=mock_service,
-            model_name='item',
-            list_template='list.html',
-            detail_template='detail.html',
-            edit_template='edit.html',
-            list_route='item_list',
-            detail_route='item_detail',
-            create_route='item_create',
-            edit_route='item_edit',
-            delete_route='item_delete'
-        )
+from app.models import Cat, User
+from app import db
+from app.services.cat_service import CatService
 
 class TestBaseCRUD:
-    def test_detail_success(self, base_crud, mock_service):
-        """测试成功获取详情"""
-        with patch('flask.render_template') as mock_render:
-            mock_render.return_value = 'detail page'
-            response = base_crud.detail(1)
-            
-            mock_service.get.assert_called_once_with(1)
-            assert response.status_code == 302
-            assert response.location == '/items'
+    @pytest.fixture(autouse=True)
+    def setup(self, app):
+        app.config.update({
+            'SERVER_NAME': 'localhost.localdomain',
+            'APPLICATION_ROOT': '/',
+            'PREFERRED_URL_SCHEME': 'http'
+        })
+        
+        self.service = CatService(db)
+        self.crud = BaseCRUD(
+            service=self.service,
+            model_name='cat',
+            list_template='cats/list.html',
+            detail_template='cats/detail.html',
+            edit_template='cats/edit.html',
+            list_route='admin_cats.admin_cats_list',
+            detail_route='admin_cats.admin_cats_edit',
+            create_route='admin_cats.admin_cats_create',
+            edit_route='admin_cats.admin_cats_edit',
+            delete_route='admin_cats.admin_cats_delete'
+        )
+        with app.app_context():
+            db.create_all()
+            # 创建测试数据
+            self.test_user = User(username='test', password_hash='test')
+            db.session.add(self.test_user)
+            db.session.commit()
+            yield
+            db.drop_all()
 
-    def test_detail_not_found(self, base_crud, mock_service):
-        """测试获取不存在的详情"""
-        mock_service.get.return_value = None
-        with patch('flask.redirect') as mock_redirect:
-            mock_redirect.return_value = 'redirect'
-            response = base_crud.detail(1)
+    def test_detail(self, app):
+        """测试详情页"""
+        with app.test_request_context():
+            cat = Cat(name='Test Cat', age=2, user_id=self.test_user.id)
+            db.session.add(cat)
+            db.session.commit()
             
-            mock_service.get.assert_called_once_with(1)
+            response = self.crud.detail(cat.id)
             assert response.status_code == 302
-            assert response.location == '/items'
+            assert url_for('admin_cats.admin_cats_list') in response.location
 
-    def test_delete_success(self, base_crud, mock_service):
-        """测试成功删除"""
-        with patch('flask.redirect') as mock_redirect:
-            mock_redirect.return_value = 'redirect'
-            response = base_crud.delete(1)
+    def test_delete(self, app):
+        """测试删除操作"""
+        with app.test_request_context():
+            cat = Cat(name='To Delete', age=3, user_id=self.test_user.id)
+            db.session.add(cat)
+            db.session.commit()
             
-            mock_service.get.assert_called_once_with(1)
-            mock_service.delete.assert_called_once_with(1)
+            def mock_before_delete(item):
+                assert item.id == cat.id
+            
+            # 测试正常删除
+            response = self.crud.delete(
+                id=cat.id,
+                user_id=self.test_user.id,
+                before_delete=mock_before_delete,
+                success_message='删除成功!'
+            )
             assert response.status_code == 302
-            assert response.location == '/items'
+            assert url_for('admin_cats.admin_cats_list') in response.location
+            
+            # 测试不存在的item
+            response = self.crud.delete(
+                id=999,
+                user_id=self.test_user.id
+            )
+            assert response.status_code == 302
+            
+            # 测试before_delete抛出异常
+            def failing_before_delete(item):
+                raise Exception("Test error")
+            
+            cat = Cat(name='To Delete 2', age=3, user_id=self.test_user.id)
+            db.session.add(cat)
+            db.session.commit()
+            
+            response = self.crud.delete(
+                id=cat.id,
+                user_id=self.test_user.id,
+                before_delete=failing_before_delete
+            )
+            assert response.status_code == 302
 
-    def test_delete_with_callback(self, base_crud, mock_service):
-        """测试带回调的删除"""
-        mock_callback = MagicMock()
-        with patch('flask.redirect') as mock_redirect:
-            mock_redirect.return_value = 'redirect'
-            response = base_crud.delete(1, before_delete=mock_callback)
-            
-            mock_callback.assert_called_once_with({'id': 1, 'name': 'Test Item'})
+    def test_detail_error_cases(self, app):
+        """测试详情页错误情况"""
+        with app.test_request_context():
+            # 测试不存在的item
+            response = self.crud.detail(999)
             assert response.status_code == 302
-            assert response.location == '/items'
+            
+            # 测试模板渲染失败
+            original_template = self.crud.detail_template
+            self.crud.detail_template = 'nonexistent_template.html'
+            cat = Cat(name='Test Cat', age=2, user_id=self.test_user.id)
+            db.session.add(cat)
+            db.session.commit()
+            
+            response = self.crud.detail(cat.id)
+            assert response.status_code == 302
+            self.crud.detail_template = original_template
 
-    def test_delete_not_found(self, base_crud, mock_service):
-        """测试删除不存在的项"""
-        mock_service.get.return_value = None
-        with patch('flask.redirect') as mock_redirect:
-            mock_redirect.return_value = 'redirect'
-            response = base_crud.delete(1)
+    def test_delete_error_logging(self, app, caplog):
+        """测试删除操作错误日志记录"""
+        with app.test_request_context():
+            cat = Cat(name='To Delete', age=3, user_id=self.test_user.id)
+            db.session.add(cat)
+            db.session.commit()
             
-            mock_service.get.assert_called_once_with(1)
-            mock_service.delete.assert_not_called()
-            assert response.status_code == 302
-            assert response.location == '/items'
+            # 模拟删除失败
+            with patch.object(self.service, 'delete', side_effect=Exception("Test error")):
+                response = self.crud.delete(
+                    id=cat.id,
+                    user_id=self.test_user.id
+                )
+                assert response.status_code == 302
+                assert "删除cat失败" in caplog.text
+                assert "Test error" in caplog.text
+
+    def test_detail_error_logging(self, app, caplog):
+        """测试详情页错误日志记录"""
+        with app.test_request_context():
+            # 确保日志级别设置为DEBUG
+            caplog.set_level(logging.DEBUG)
+            
+            # 模拟模板渲染失败
+            cat = Cat(name='Test Cat', age=2, user_id=self.test_user.id)
+            db.session.add(cat)
+            db.session.commit()
+            
+            # 同时mock render_template和service.get
+            with patch('app.core.base_crud.render_template', side_effect=Exception("Template render error")), \
+                 patch.object(self.service, 'get', return_value=cat):
+                response = self.crud.detail(cat.id)
+                assert response.status_code == 302
+                assert "获取cat详情失败" in caplog.text
+                assert "Template render error" in caplog.text
+                assert any(record.levelname == "ERROR" for record in caplog.records)
+                assert any("Template render error" in record.message for record in caplog.records)
+                # 确保日志记录器被调用
+                assert any(record.name == "app.core.base_crud" for record in caplog.records)

@@ -68,6 +68,7 @@ class BaseCRUD:
     def delete(
         self,
         id: int,
+        user_id: int,
         before_delete: Optional[Callable[[Any], None]] = None,
         success_message: str = '删除成功!',
         error_message: str = '删除失败: {}'
@@ -82,7 +83,7 @@ class BaseCRUD:
             if before_delete:
                 before_delete(item)
                 
-            self.service.delete(id)
+            self.service.delete(id, user_id)
             flash(success_message, 'success')
             return make_response(redirect(url_for(self.list_route)))
         except Exception as e:

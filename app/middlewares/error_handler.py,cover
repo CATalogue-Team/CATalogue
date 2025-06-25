@@ -57,11 +57,11 @@
           
 >     @app.errorhandler(HTTPException)
 >     def handle_http_error(e: HTTPException):
-!         return jsonify({
-!             'message': e.description,
-!             'error_type': 'http_error',
-!             'status_code': e.code
-!         }), e.code
+>         return jsonify({
+>             'message': e.description,
+>             'error_type': 'http_error',
+>             'status_code': e.code
+>         }), e.code
           
 >     @app.errorhandler(Exception)
 >     def handle_unexpected_error(e: Exception):

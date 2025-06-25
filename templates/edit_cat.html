@@ -1,6 +1,4 @@
-
 {% extends "base.html" %}
-
 {% block content %}
 <div class="container my-5">
     <div class="row justify-content-center">
@@ -94,6 +92,7 @@
                                             <img src="{{ image.url }}" 
                                                  width="200" 
                                                  class="img-thumbnail rounded {% if image.is_primary %}border-primary border-2{% endif %}"
+                                                 alt="{{ cat.name }}的照片"
                                                  onerror="this.onerror=null;this.src='/static/images/default-cat.jpg';this.alt='图片加载失败'">
                                             {% if image.is_primary %}
                                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
@@ -123,7 +122,7 @@
                         </div>
                         
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                            <a href="{% if request.args.get('referrer') == 'detail' and cat %}{{ url_for('cats.detail', id=cat.id) }}{% else %}{{ url_for('cats.admin__list') }}{% endif %}" 
+                            <a href="{% if request.args.get('referrer') == 'detail' and cat %}{{ url_for('cats.detail', id=cat.id) }}{% else %}{{ url_for('admin_cats.admin_cats_list') }}{% endif %}"
                                class="btn btn-outline-secondary me-md-2">
                                 <i class="bi bi-x-circle"></i> 取消
                             </a>

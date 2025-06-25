@@ -1,0 +1,9 @@
+> from flask_wtf import FlaskForm
+> from wtforms import SelectField
+> from wtforms.validators import DataRequired
+  
+> class AdminApproveForm(FlaskForm):
+>     action = SelectField('操作', choices=[
+>         ('approve', '批准'),
+>         ('reject', '拒绝')
+>     ], validators=[DataRequired()])

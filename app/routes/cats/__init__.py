@@ -1,0 +1,8 @@
+from app.routes.cats.base import bp
+from app.routes.cats.admin import admin_bp
+from app.routes.cats.search import search_bp
+
+def init_app(app):
+    app.register_blueprint(bp)
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(search_bp, url_prefix='/search')

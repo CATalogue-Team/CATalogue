@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from app.services.cat_service import CatService
 from app.models import Cat
 from sqlalchemy.exc import SQLAlchemyError
@@ -97,6 +97,17 @@ class TestCatCRUD:
         mock_db.session.get.return_value = mock_cat
         updated_cat = cat_service.update(1, 1, name='UpdatedName')
         assert updated_cat is not None
+
+    def test_update_failure(self, cat_service, mock_db):
+        """测试父类update返回False的情况"""
+        mock_cat = MagicMock()
+        mock_cat.user_id = 1
+        mock_db.session.get.return_value = mock_cat
+        
+        # 直接模拟BaseService.update方法返回False
+        with patch('app.services.cat_service.BaseService.update', return_value=False):
+            with pytest.raises(ValueError, match="更新猫咪信息失败"):
+                cat_service.update(1, 1, name='ShouldFail')
 
     def test_delete_success(self, cat_service, mock_db):
         mock_cat = MagicMock()

@@ -8,7 +8,7 @@
             <h3 class="mb-0"><i class="bi bi-search me-2"></i>猫咪搜索</h3>
         </div>
         <div class="card-body">
-            <form method="GET" action="{{ url_for('cats.search') }}" class="row g-3">
+            <form method="GET" action="{{ url_for('search_cats.search') }}" class="row g-3">
                 {% set search_params = search_params or {} %}
                 <div class="col-md-6">
                     <label for="q" class="form-label">关键词</label>
@@ -52,7 +52,7 @@
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-search me-1"></i>搜索
                     </button>
-                    <a href="{{ url_for('cats.search') }}" class="btn btn-outline-secondary ms-2">重置</a>
+                    <a href="{{ url_for('search_cats.search') }}" class="btn btn-outline-secondary ms-2">重置</a>
                 </div>
             </form>
         </div>
@@ -84,10 +84,10 @@
                                     {{ '已领养' if cat.is_adopted else '待领养' }}
                                 </span>
                             </p>
-                            <p class="card-text">{{ cat.description|truncate(100) }}</p>
+                            <p class="card-text">{% if cat.description %}{{ cat.description|truncate(100) }}{% else %}暂无描述{% endif %}</p>
                         </div>
                         <div class="card-footer bg-transparent">
-    <a href="{{ url_for('cats.admin__detail', id=cat.id) }}"
+    <a href="{{ url_for('admin_cats.admin_cats_edit', id=cat.id) }}"
                                class="btn btn-sm btn-outline-primary">查看详情</a>
                         </div>
                     </div>
