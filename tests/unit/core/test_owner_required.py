@@ -55,36 +55,38 @@ class MockModel:
 def test_owner_required_missing_id(app):
     """测试缺少资源ID的情况"""
     MockModel.setup_query(return_value=None)
-    
+
     @owner_required(MockModel)
     def test_route(id):
         return jsonify({'status': 'success'})
-        
-    with app.test_client() as client:
+
+    with app.test_request_context('/'):
         with patch('app.decorators.flash') as mock_flash, \
              patch('flask_login.current_user') as mock_user:
             mock_user.is_authenticated = True
-            response = client.get('/')
+            mock_user.id = 1
+            mock_user.is_admin = False
+            response = test_route(id=None)
             mock_flash.assert_called_once_with('缺少资源ID', 'error')
             assert response.status_code == 302
             assert response.location.endswith('/')
 
-def test_owner_required_resource_not_found(app):
-    """测试资源不存在的情况"""
-    with app.test_request_context('/?id=1'):
-            with patch('app.models.db.session.query') as mock_query:
+    def test_owner_required_resource_not_found(app):
+        """测试资源不存在的情况"""
+        @owner_required(MockModel)
+        def test_route(id):
+            return jsonify({'status': 'success'})
+
+        with app.test_request_context('/?id=1'):
+            with patch('app.models.db.session.query') as mock_query, \
+                 patch('flask_login.current_user') as mock_user, \
+                 patch('app.decorators.flash') as mock_flash:
                 mock_query.return_value.get.return_value = None
-            # 设置current_user
-            with patch('flask_login.current_user') as mock_user:
                 mock_user.is_authenticated = True
                 mock_user.id = 1
                 mock_user.is_admin = False
-            @owner_required(MockModel)
-            def test_route(id):
-                return jsonify({'status': 'success'})
-                
-            with patch('app.decorators.flash') as mock_flash:
-                response = test_route(id=1)
+                test_route(id=1)
+                mock_flash.assert_called_once_with('资源不存在', 'error')
                 mock_flash.assert_called_with('资源不存在', 'error')
                 assert response.status_code == 302
                 assert response.location.endswith('/')

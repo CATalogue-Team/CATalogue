@@ -4,12 +4,10 @@ from flask import current_app
 from typing import Optional
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.orm import DeclarativeBase, Mapped
-from . import db
-
-class Base(DeclarativeBase):
-    """SQLAlchemy基类"""
-    pass
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import Optional, List
+from .database import db
+from .base import Base
 
 # 关联Flask-SQLAlchemy的metadata
 Base.metadata = db.metadata
@@ -17,17 +15,17 @@ Base.metadata = db.metadata
 class User(Base, UserMixin):
     __tablename__ = 'users'
     
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False, nullable=False)
-    status = db.Column(db.String(20), default='pending', nullable=False)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    last_login = db.Column(db.DateTime)
-    approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(db.String(64), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(db.String(128), nullable=False)
+    is_admin: Mapped[bool] = mapped_column(db.Boolean, default=False, nullable=False)
+    status: Mapped[str] = mapped_column(db.String(20), default='pending', nullable=False)
+    created_at: Mapped[datetime] = mapped_column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    last_login: Mapped[Optional[datetime]] = mapped_column(db.DateTime)
+    approved_by: Mapped[Optional[int]] = mapped_column(db.Integer, db.ForeignKey('users.id'))
     
     # 关系定义
-    cats = db.relationship('Cat', backref='owner', lazy=True)
+    cats: Mapped[List['Cat']] = relationship('Cat', back_populates='owner')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -64,7 +62,8 @@ class CatImage(Base):
     url = db.Column(db.String(200), nullable=False)
     is_primary = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    cat_id = db.Column(db.Integer, db.ForeignKey('cats.id'), nullable=False)
+    cat_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('cats.id'), nullable=False)
+    cat: Mapped['Cat'] = relationship('Cat', back_populates='images')
     
     def __init__(self, **kwargs):
         url = kwargs.get('url', '')
@@ -89,10 +88,11 @@ class Cat(Base):
     is_adopted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = db.Column(db.DateTime, onupdate=lambda: datetime.now(timezone.utc))
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    owner: Mapped['User'] = relationship('User', back_populates='cats')
     
     # 关系定义
-    images: db.Mapped[list['CatImage']] = db.relationship('CatImage', backref='cat', lazy=True, cascade='all, delete-orphan')
+    images: Mapped[List['CatImage']] = relationship('CatImage', back_populates='cat', cascade='all, delete-orphan')
     
     @property
     def primary_image(self) -> Optional[str]:

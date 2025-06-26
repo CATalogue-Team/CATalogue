@@ -1,90 +1,59 @@
-# CATalogue API 文档
+# CATalogue API 文档 (v1)
 
-## 1. 认证API
+## 快速开始
+```bash
+# 启动开发服务器
+flask run
 
-### 登录
-`POST /api/auth/login`
+# 测试API端点
+curl http://localhost:5000/api/v1/cats
+```
 
-请求体:
-```json
+## 端点列表
+
+### 猫咪管理
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/v1/cats` | 获取猫咪列表 |
+| POST | `/api/v1/cats` | 创建新猫咪 |
+| GET | `/api/v1/cats/:id` | 获取猫咪详情 |
+| PUT | `/api/v1/cats/:id` | 更新猫咪信息 |
+| DELETE | `/api/v1/cats/:id` | 删除猫咪 |
+
+## 请求/响应示例
+
+### 创建猫咪 (POST)
+```http
+POST /api/v1/cats
+Content-Type: application/json
+Authorization: Bearer {token}
+
 {
-  "username": "string",
-  "password": "string",
-  "remember": "boolean"
+  "user_id": 1,
+  "name": "Whiskers",
+  "age": 2,
+  "breed": "Tabby"
 }
 ```
 
-响应:
-- 200: 登录成功
-- 401: 无效凭证
-- 403: 账号未审核
-
-### 注册
-`POST /api/auth/register`
-
-请求体:
+### 响应
 ```json
 {
-  "username": "string",
-  "password": "string",
-  "is_admin": "boolean"
+  "data": {
+    "id": 123,
+    "name": "Whiskers",
+    "age": 2,
+    "breed": "Tabby"
+  },
+  "meta": {
+    "version": "v1"
+  }
 }
 ```
 
-响应:
-- 201: 注册成功
-- 400: 无效请求
-- 500: 注册失败
-
-## 2. 猫咪管理API
-
-### 获取猫咪列表
-`GET /api/cats/`
-
-响应:
-```json
-[{
-  "id": "number",
-  "name": "string",
-  "breed": "string",
-  "age": "number",
-  "description": "string",
-  "is_adopted": "boolean",
-  "created_at": "datetime"
-}]
-```
-
-### 搜索猫咪
-`GET /api/cats/search`
-
-查询参数:
-- q: 搜索关键词
-- breed: 品种筛选
-- min_age: 最小年龄
-- max_age: 最大年龄
-- is_adopted: 是否被领养
-
-## 3. 文档标准
-- 使用Swagger UI自动生成
-- 访问路径: `/api/docs`
-- 包含请求/响应示例
-- 包含错误码说明
-
-## 4. 响应格式规范
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {},
-  "timestamp": "ISO8601"
-}
-```
-
-## 5. 错误码
-| 状态码 | 说明 |
-|--------|------|
-| 400 | 请求参数错误 |
-| 401 | 未授权 |
-| 403 | 禁止访问 |
-| 404 | 资源不存在 |
-| 500 | 服务器错误 |
+## 错误代码
+- 400: 请求参数错误
+- 401: 未授权
+- 403: 禁止访问
+- 404: 资源不存在
+- 500: 服务器错误

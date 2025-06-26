@@ -1,50 +1,35 @@
 from typing import List, Optional, Type, Dict, Any, Union
 from datetime import datetime, timezone
 from sqlalchemy.orm import Query
-from .. import db
-from ..models import Cat, User, CatImage
-from werkzeug.datastructures import FileStorage
-from werkzeug.utils import secure_filename
-import os
-from flask import current_app
+from ..models import Cat
 from .base_service import BaseService
 
 class CatService(BaseService):
     """猫咪信息服务层"""
     def __init__(self, db):
-        super().__init__(db)
+        super().__init__(db, Cat)
         
-    model = Cat  # 定义模型类
-    
-    def get(self, id_or_model: Union[int, Type[Cat]], model: Optional[Type[Cat]] = None) -> Optional[Cat]:
+    def get_cat(self, id_or_model: Union[int, Type[Cat]], model: Optional[Type[Cat]] = None) -> Optional[Cat]:
         """获取单个猫咪信息"""
         if isinstance(id_or_model, int):
-            return super().get(model or self.model, id_or_model)
+            return super().get(id_or_model)
         elif isinstance(id_or_model, type) and issubclass(id_or_model, Cat):
             return self.db.session.query(id_or_model).first()
         raise ValueError("参数必须是猫咪ID或Cat类")
     
-    def create_cat(self, user_id: Optional[int] = None, **kwargs) -> Cat:
+    def create_cat(self, user_id: int, **kwargs) -> Cat:
         """创建猫咪信息"""
         if user_id is None:
             raise ValueError("user_id是必填字段")
             
-        # 检查名称是否有效
-        if 'name' in kwargs:
-            if not kwargs['name'] or not kwargs['name'].strip():
-                raise ValueError("猫咪名称不能为空")
-            existing_cat = self.db.session.query(self.model).filter_by(name=kwargs['name']).first()
-            if existing_cat:
-                raise ValueError(f"猫咪名称'{kwargs['name']}'已存在")
+        if 'name' in kwargs and not kwargs['name'].strip():
+            raise ValueError("猫咪名称不能为空")
             
-        # 验证年龄范围
-        if 'age' in kwargs:
-            age = kwargs['age']
-            if not isinstance(age, int) or age < 0 or age > 30:
-                raise ValueError("猫咪年龄必须在0-30岁之间")
+        if 'age' in kwargs and (not isinstance(kwargs['age'], int) or kwargs['age'] < 0 or kwargs['age'] > 30):
+            raise ValueError("猫咪年龄必须在0-30岁之间")
             
         try:
-            cat = self.model(
+            cat = Cat(
                 user_id=user_id,
                 created_at=datetime.now(timezone.utc),
                 updated_at=datetime.now(timezone.utc),
@@ -55,61 +40,52 @@ class CatService(BaseService):
             return cat
         except Exception as e:
             self.db.session.rollback()
-            current_app.logger.error(f"创建猫咪失败: {str(e)}")
-            raise
+            raise ValueError(f"创建猫咪失败: {str(e)}")
 
-    def update(self, id: int, user_id: int, **kwargs) -> Cat:
+    def update_cat(self, id: int, current_user_id: int, **kwargs) -> Cat:
         """更新猫咪信息"""
         cat = self.get(id)
         if not cat:
             raise ValueError(f"猫咪ID {id} 不存在")
-        if cat.user_id != user_id:
+        if cat.user_id != current_user_id:
             raise PermissionError("无权更新其他用户的猫咪信息")
             
-        # 验证年龄范围
-        if 'age' in kwargs:
-            age = kwargs['age']
-            if not isinstance(age, int) or age < 0 or age > 30:
-                raise ValueError("猫咪年龄必须在0-30岁之间")
-                
-        # 显式调用父类方法并转换类型
-        updated = super().update(type(cat), user_id, **kwargs)
-        if not updated:
-            raise ValueError("更新猫咪信息失败")
-        return updated
+        if 'age' in kwargs and (not isinstance(kwargs['age'], int) or kwargs['age'] < 0 or kwargs['age'] > 30):
+            raise ValueError("猫咪年龄必须在0-30岁之间")
+            
+        try:
+            return self.update(id, **kwargs)
+        except Exception as e:
+            raise ValueError(f"更新猫咪失败: {str(e)}")
 
-    def delete(self, id: int, user_id: int) -> bool:
+    def delete_cat(self, id: int, user_id: int) -> bool:
         """删除猫咪信息"""
         cat = self.get(id)
         if not cat:
             raise ValueError(f"猫咪ID {id} 不存在")
         if cat.user_id != user_id:
             raise PermissionError("无权删除其他用户的猫咪信息")
-        return super().delete(cat, user_id)
+        return self.delete(id)
 
-    def search(self, query: Optional[str] = None, min_age: Optional[int] = None, 
-              max_age: Optional[int] = None, breed: Optional[str] = None, 
-              is_adopted: Optional[bool] = None) -> List[Cat]:
+    def search_cats(self, query: Optional[str] = None, min_age: Optional[int] = None, 
+                  max_age: Optional[int] = None, breed: Optional[str] = None, 
+                  is_adopted: Optional[bool] = None) -> List[Cat]:
         """搜索猫咪信息"""
-        q = self.db.session.query(self.model)
+        q = self.db.session.query(Cat)
         
         if query:
-            q = q.filter(self.model.name.ilike(f'%{query}%'))
+            q = q.filter(Cat.name.ilike(f'%{query}%'))
             
         if min_age is not None:
-            q = q.filter(self.model.age >= min_age)
+            q = q.filter(Cat.age >= min_age)
             
         if max_age is not None:
-            q = q.filter(self.model.age <= max_age)
+            q = q.filter(Cat.age <= max_age)
             
         if breed:
-            q = q.filter(self.model.breed.ilike(f'%{breed}%'))
+            q = q.filter(Cat.breed.ilike(f'%{breed}%'))
             
         if is_adopted is not None:
-            q = q.filter(self.model.is_adopted == is_adopted)
+            q = q.filter(Cat.is_adopted == is_adopted)
             
         return q.all()
-
-    def get_all_cats(self) -> List[Cat]:
-        """获取所有猫咪信息"""
-        return self.get_all(self.model)

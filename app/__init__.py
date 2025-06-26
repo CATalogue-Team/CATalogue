@@ -1,21 +1,33 @@
 from flask import Flask as BaseFlask, request
 from typing import Any, Optional, TypeVar, cast
 from werkzeug.wrappers import Response as BaseResponse
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
+
+# 从extensions导入db实例
+from .extensions import db
+
+# 在创建应用前导入所有模型
+from .models import User, Cat
 from flask_restx import Api, Resource, Namespace, fields
-from .extensions import db, cache, login_manager, csrf, limiter, babel
+from .extensions import cache, login_manager, csrf, limiter, babel
 from app.services.cat_service import CatService
 from .services.user_service import UserService
 from .middlewares.error_handler import register_error_handlers
 
 # 自定义Flask类添加类型注解
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .services.user_service import UserService
+    from .services.cat_service import CatService
+
 class Flask(BaseFlask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.db: SQLAlchemy
-        self.cat_service: CatService
-        self.user_service: UserService
+        self.cat_service: 'CatService' = None  # type: ignore
+        self.user_service: 'UserService' = None  # type: ignore
+        self.cat_crud: 'BaseCRUD' = None  # type: ignore
 
 class Response(BaseResponse):
     pass
@@ -82,14 +94,24 @@ def create_app(config_class=Config):
     if isinstance(db_uri, str) and db_uri.startswith('sqlite://'):
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'poolclass': None}
     
+    # 初始化数据库
     db.init_app(app)
-    app.db = db  # type: ignore  # 使db实例可通过app访问
     migrate = Migrate(app, db)
+    
+    # 确保在应用上下文中创建表
+    @app.before_first_request
+    def create_tables():
+        with app.app_context():
+            db.create_all()
+    
+    app.db = db  # type: ignore  # 使db实例可通过app访问
     cache.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
     babel.init_app(app)
+    from .extensions import jwt
+    jwt.init_app(app)
     
     # 配置Babel
     app.config['BABEL_DEFAULT_LOCALE'] = 'zh'

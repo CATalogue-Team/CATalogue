@@ -1,148 +1,76 @@
-
-from typing import Type, TypeVar, Optional, TYPE_CHECKING
-from flask import current_app
+from typing import Type, Optional, List, Dict, Any
+from sqlalchemy.orm import Query
 import logging
-from .. import db
-logger = logging.getLogger(__name__)
-from flask_sqlalchemy.pagination import Pagination
-from sqlalchemy.orm import DeclarativeBase
-
-if TYPE_CHECKING:
-    from sqlalchemy.orm import DeclarativeBase
-
-ModelType = TypeVar('ModelType', bound=DeclarativeBase)
 
 class BaseService:
-    """基础服务类"""
-    def __init__(self, db):
-        """初始化基础服务
-        参数:
-            db: 必须包含session属性的数据库对象
-        """
-        if db is None:
-            raise ValueError("db参数不能为None")
-        if not hasattr(db, 'session'):
-            raise ValueError("db对象必须包含session属性")
+    """服务基类"""
+    def __init__(self, db, model):
         self.db = db
-        if not hasattr(self.db.session, 'get'):
-            raise ValueError("db.session必须支持get方法")
-        logger.info("BaseService initialized with db: %s", db)
-    
-    def get(self, model, id: int):
-        """获取单个记录"""
-        return self.db.session.get(model, id)
-    
-    def get_all(self, model):
-        """获取所有记录"""
-        return self.db.session.query(model).all()
-    
-    def create(self, model: Type['ModelType'], **kwargs) -> 'ModelType':
-        """创建记录
-        参数:
-            model: SQLAlchemy模型类
-            **kwargs: 模型属性
-        返回:
-            创建的模型实例
-        异常:
-            ValueError: 如果缺少必填字段或模型无效
-        """
-        # 验证模型类型
-        if not hasattr(model, '__table__'):
-            raise ValueError("无效的模型类 - 必须继承自SQLAlchemy模型")
-            
-        # 检查必填字段
-        required_fields = []
-        table = model.__table__
-        for column in table.columns:
-            if (not column.nullable and 
-                column.default is None and 
-                column.name != 'id' and
-                not column.primary_key):
-                # 检查字段是否在kwargs中或是否有默认值
-                if column.name not in kwargs:
-                    required_fields.append(column.name)
-        
-        if required_fields:
-            current_app.logger.debug(f"模型字段验证: {table.columns.keys()}")
-            current_app.logger.debug(f"提供参数: {kwargs.keys()}")
-            current_app.logger.debug(f"缺少必填字段: {required_fields}")
-            raise ValueError(f"缺少必填字段: {', '.join(required_fields)}")
-        
+        self.model = model
+        self.logger = logging.getLogger(__name__)
+
+    def get(self, id: int) -> Optional[Any]:
+        """获取单个资源"""
+        return self.db.session.query(self.model).get(id)
+
+    def get_all(self) -> List[Any]:
+        """获取所有资源"""
+        return self.db.session.query(self.model).all()
+
+    def create(self, **kwargs) -> Any:
+        """创建资源"""
         try:
-            obj = model(**kwargs)
-            self.db.session.add(obj)
+            instance = self.model(**kwargs)
+            self.db.session.add(instance)
             self.db.session.commit()
-            return obj
+            return instance
         except Exception as e:
             self.db.session.rollback()
-            current_app.logger.error(f"创建记录失败: {str(e)}")
+            self.logger.error(f"创建失败: {str(e)}")
             raise
-    
-    def update(self, model: Type['ModelType'], id: int, **kwargs) -> Optional['ModelType']:
-        """更新记录"""
-        obj = self.db.session.get(model, id)
-        if not obj:
+
+    def update(self, id: int, **kwargs) -> Optional[Any]:
+        """更新资源"""
+        instance = self.get(id)
+        if not instance:
             return None
             
-        for key, value in kwargs.items():
-            setattr(obj, key, value)
-            
-        self.db.session.commit()
-        return obj
-    
-    def delete(self, model, id: int) -> bool:
-        """删除记录"""
-        obj = self.db.session.get(model, id)
-        if not obj:
+        try:
+            for key, value in kwargs.items():
+                setattr(instance, key, value)
+            self.db.session.commit()
+            return instance
+        except Exception as e:
+            self.db.session.rollback()
+            self.logger.error(f"更新失败: {str(e)}")
+            raise
+
+    def delete(self, id: int) -> bool:
+        """删除资源"""
+        instance = self.get(id)
+        if not instance:
             return False
             
-        self.db.session.delete(obj)
-        self.db.session.commit()
-        return True
-        
-    def get_paginated(self, model, page=1, per_page=None, order_by=None, **filters):
-        """
-        分页获取记录
-        参数:
-            model: 模型类
-            page: 当前页码
-            per_page: 每页记录数(默认使用配置中的ITEMS_PER_PAGE)
-            order_by: 排序字段(带-前缀表示降序)
-            filters: 过滤条件
-        返回:
-            Pagination对象
-        """
-        from flask import current_app
-        query = self.db.session.query(model)
+        try:
+            self.db.session.delete(instance)
+            self.db.session.commit()
+            return True
+        except Exception as e:
+            self.db.session.rollback()
+            self.logger.error(f"删除失败: {str(e)}")
+            return False
+
+    def get_paginated(self, page: int = 1, per_page: int = 10, **filters) -> Dict[str, Any]:
+        """获取分页资源"""
+        query = self.db.session.query(self.model)
         
         # 应用过滤条件
         for key, value in filters.items():
-            if key.endswith('__ilike'):
-                field = key[:-7]
-                if hasattr(model, field):
-                    query = query.filter(getattr(model, field).ilike(value))
-            elif hasattr(model, key):
-                query = query.filter(getattr(model, key) == value)
-        
-        # 应用排序
-        if order_by:
-            if order_by.startswith('-'):
-                field = order_by[1:]
-                if hasattr(model, field):
-                    query = query.order_by(getattr(model, field).desc())
+            if '__' in key:
+                field, op = key.split('__', 1)
+                if op == 'ilike':
+                    query = query.filter(getattr(self.model, field).ilike(f'%{value}%'))
             else:
-                if hasattr(model, order_by):
-                    query = query.order_by(getattr(model, order_by))
-                    
-        try:
-            result = query.paginate(
-                page=page,
-                per_page=per_page or current_app.config.get('ITEMS_PER_PAGE', 10),
-                error_out=False
-            )
-            return result
-        except Exception as e:
-            if self.db.session.is_active:
-                self.db.session.rollback()
-            logger.error(f"分页查询失败: {str(e)}")
-            raise
+                query = query.filter(getattr(self.model, key) == value)
+                
+        return query.paginate(page=page, per_page=per_page, error_out=False)

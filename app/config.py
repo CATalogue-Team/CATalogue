@@ -1,74 +1,47 @@
-
-import os
+from os import path, environ
 from dotenv import load_dotenv
-from pathlib import Path
-from .constants import CatConstants, AppConstants
+
+load_dotenv()
 
 class Config:
-    def __init__(self):
-        self._load_env()
-        
-    def _load_env(self):
-        """加载环境变量"""
-        env_path = Path(__file__).parent.parent / '.env'
-        load_dotenv(env_path)
-        
-    @property
-    def APP_PORT(self):
-        """应用端口配置"""
-        return int(os.getenv('APP_PORT', '5000'))
-        
-    @property
-    def SECRET_KEY(self):
-        return os.getenv('SECRET_KEY', 'dev-key')
-        
-    @property
-    def SQLALCHEMY_DATABASE_URI(self):
-        return os.getenv('DATABASE_URL', f'sqlite:///{Path(__file__).parent.parent}/app.db')
-        
-    @property
-    def UPLOAD_FOLDER(self):
-        return os.getenv('UPLOAD_FOLDER', str(Path(__file__).parent.parent / 'static/uploads'))
-        
-    @property 
-    def ITEMS_PER_PAGE(self):
-        return int(os.getenv('ITEMS_PER_PAGE', str(CatConstants.DEFAULT_ITEMS_PER_PAGE)))
-        
-    @property
-    def FLASK_ENV(self):
-        return os.getenv('FLASK_ENV', 'development')
-        
-    @property
-    def FLASK_DEBUG(self):
-        return os.getenv('FLASK_DEBUG', '1') == '1'
-        
-    @property
-    def CACHE_TYPE(self):
-        return os.getenv('CACHE_TYPE', 'SimpleCache')
-        
-    @property
-    def RATELIMIT_STORAGE_URL(self):
-        return os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
+    SECRET_KEY = environ.get('SECRET_KEY') or 'dev-key'
+    SQLALCHEMY_DATABASE_URI = environ.get('DATABASE_URL') or \
+        'sqlite:///' + path.join(path.dirname(__file__), 'app.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    UPLOAD_FOLDER = path.join(path.dirname(__file__), 'uploads')
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
+    FLASK_ENV = environ.get('FLASK_ENV') or 'development'
+    SERVER_NAME = environ.get('SERVER_NAME')
+    
+    @staticmethod
+    def init_app(app):
+        pass
 
+class DevelopmentConfig(Config):
+    DEBUG = True
+    SQLALCHEMY_ECHO = True
 
 class TestingConfig(Config):
-    @property
-    def TESTING(self):
-        return True
-        
-    @property
-    def APP_PORT(self):
-        """测试环境端口"""
-        return 5001
-        
-    @property
-    def SQLALCHEMY_DATABASE_URI(self):
-        return 'sqlite:///:memory:'
-        
-    @property
-    def SQLALCHEMY_TRACK_MODIFICATIONS(self):
-        return False
-        
-    @property
-    def CACHE_TYPE(self):
-        return 'NullCache'
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///test.db'
+    WTF_CSRF_ENABLED = False
+    JWT_SECRET_KEY = 'test-secret-key'
+    JWT_ACCESS_TOKEN_EXPIRES = False
+
+class ProductionConfig(Config):
+    ENV = 'production'
+    DEBUG = False
+    TESTING = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 3600
+    }
+    TEMPLATES_AUTO_RELOAD = False
+    PROPAGATE_EXCEPTIONS = True
+
+config = {
+    'development': DevelopmentConfig,
+    'testing': TestingConfig,
+    'production': ProductionConfig,
+    'default': DevelopmentConfig
+}

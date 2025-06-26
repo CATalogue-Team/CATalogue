@@ -50,8 +50,6 @@ class CatList(Resource):
                 description=data.get('description', ''),
                 is_adopted=data.get('is_adopted', False),
                 user_id=data.get('user_id', current_user.id if current_user.is_authenticated else None),
-                created_at=None,
-                updated_at=None
             )
             return cat, 201
         except ValueError as e:
@@ -59,7 +57,7 @@ class CatList(Resource):
         except Exception as e:
             api.abort(500, str(e))
 
-@api.route('/<int:id>')
+@api.route('/<int:id>', strict_slashes=False)
 class CatResource(Resource):
     @api.doc(security='Bearer Auth')
     @api.marshal_with(cat_model)
@@ -77,16 +75,19 @@ class CatResource(Resource):
         """更新猫咪信息"""
         data = api.payload
         try:
+            current_user_id = current_user.id if current_user.is_authenticated else None
+            if current_user_id is None:
+                api.abort(401, '需要登录才能更新猫咪信息')
+            
             cat = CatService(db).update(
                 id,
-                current_user_id=current_user.id if current_user.is_authenticated else None,
+                current_user_id=current_user_id,
                 name=data.get('name'),
                 breed=data.get('breed'),
                 age=data.get('age'),
                 description=data.get('description'),
                 is_adopted=data.get('is_adopted'),
-                user_id=data.get('user_id', current_user.id if current_user.is_authenticated else None),
-                updated_at=None
+                user_id=data.get('user_id', current_user_id),
             )
             if not cat:
                 api.abort(404, '猫咪不存在')

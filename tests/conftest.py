@@ -4,7 +4,7 @@ from contextlib import ExitStack
 from datetime import datetime
 from flask.testing import FlaskClient
 from app import create_app
-from app.extensions import db
+from app import db
 from app.config import TestingConfig
 from app.models import User, Cat
 from tests.services.users.test_reporter import TestReporter
@@ -33,10 +33,21 @@ def database(request, app):
         mock_db.session = MagicMock()
         yield mock_db
         return
-        
+
+    # 使用与生产相同的数据库文件
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/app.db'
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # 强制重新初始化数据库
     with app.app_context():
+        db.drop_all()
         db.create_all()
-        yield db
+    
+    yield db
+    
+    # 清理
+    with app.app_context():
         db.session.remove()
         db.drop_all()
 
@@ -58,7 +69,8 @@ def app(tmp_path):
     
     app = create_app(TestingConfig)
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/app.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['WTF_CSRF_ENABLED'] = False
     app.config['UPLOAD_FOLDER'] = str(tmp_path / 'uploads')
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB

@@ -1,0 +1,26 @@
+[run]
+source = .
+omit = 
+    */migrations/*
+    */env/*
+    */htmlcov/*
+    */__pycache__/*
+    */translations/*
+    */static/*
+    */templates/*
+    */instance/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    @abstractmethod
+    @property
+
+[paths]
+source =
+    app/
+    tests/
