@@ -1,6 +1,6 @@
 import pytest
 from flask import url_for
-from app.routes.cats.admin import admin_bp
+from app.routes.cats.admin import list_cats, get_cat, create_cat, update_cat, delete_cat
 from app.models import Cat, User
 from app import db, create_app
 
@@ -37,22 +37,26 @@ def client(app):
         # 关闭所有数据库连接
         db.session.remove()
 
-def test_admin_cats_list(client):
+def test_list_cats(client):
     """Test cat list route"""
-    resp = client.get(url_for('admin_cats.admin_cats_list'))
+    resp = client.get(url_for('admin_cats.list_cats'))
     assert resp.status_code == 200
-    assert isinstance(resp.json, list)  # 验证返回的是JSON数组
+    assert isinstance(resp.json, dict)  # 验证返回的是JSON对象
+    assert 'data' in resp.json
+    assert isinstance(resp.json['data'], list)
 
-def test_admin_cats_create(client):
+def test_create_cat(client):
     """Test create cat route"""
-    resp = client.post(url_for('admin_cats.admin_cats_create'), 
-        data={
+    resp = client.post(url_for('admin_cats.create_cat'),
+        json={
             'name': 'Test Cat',
-            'breed': 'Test Breed', 
-            'age': '2',  # 表单需要字符串格式
+            'breed': 'Test Breed',
+            'age': 2,
             'description': 'Test Description',
-            'is_adopted': 'False'  # 表单需要字符串格式
+            'is_adopted': False,
+            'user_id': 1
         },
-        follow_redirects=False)  # 不自动跟随重定向
-    assert resp.status_code == 302  # 验证重定向状态码
-    assert resp.location.endswith(url_for('admin_cats.admin_cats_list'))  # 验证重定向目标
+        headers={'Content-Type': 'application/json'})
+    assert resp.status_code == 201  # 验证创建成功状态码
+    assert isinstance(resp.json, dict)
+    assert 'data' in resp.json

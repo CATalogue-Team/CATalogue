@@ -1,18 +1,13 @@
 from flask_restx import Api
-from flask import Blueprint
 from .auth import api as auth_ns
 from .cats import api as cats_ns
 
-# 创建蓝图
-api_bp = Blueprint('api', __name__, url_prefix='/api')
-
 # 初始化API
 api = Api(
-    api_bp,
     title='CATalogue API',
     version='1.0',
     description='猫咪领养系统API文档',
-    doc='/docs',  # Swagger UI路径
+    doc='/api/docs',  # Swagger UI路径
     security='Bearer Auth',
     authorizations={
         'Bearer Auth': {

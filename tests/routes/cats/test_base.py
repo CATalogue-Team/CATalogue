@@ -1,5 +1,5 @@
 import pytest
-from app.routes.cats.base import bp, cat_crud
+from app.routes.cats.base import bp, init_cat_crud
 from app import create_app
 
 @pytest.fixture
@@ -12,4 +12,6 @@ def test_blueprint_registration(app):
     """测试蓝图是否正确注册"""
     with app.test_client() as client:
         assert 'cats' in app.blueprints
-        assert cat_crud is not None
+        # 测试初始化CRUD
+        crud = init_cat_crud(app.cat_service)
+        assert crud is not None

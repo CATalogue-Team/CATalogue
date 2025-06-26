@@ -140,15 +140,22 @@ def create_app(config_class=Config):
     # 确保上传目录存在
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
-    # 注册蓝图 - 先注册API蓝图
-    from .routes import main, auth, admin
+    # 注册模板路由
+    from .routes import main
+    main.register_template_routes(app)
+    
+    # 注册认证路由
+    from .routes.auth import bp as auth_bp
+    app.register_blueprint(auth_bp)
+    
+    # 初始化猫咪路由
     from .routes.cats import init_app as init_cats
-    from .api import api_bp
-    app.register_blueprint(api_bp)  # 注册API蓝图
-    app.register_blueprint(main.bp)
-    app.register_blueprint(auth.bp)
-    app.register_blueprint(admin.bp)
-    init_cats(app)  # 初始化猫咪路由
+    init_cats(app)
+    
+    # 最后初始化API (确保应用上下文完全建立)
+    from .api import api
+    with app.app_context():
+        api.init_app(app)
 
     # 注册错误处理器
     register_error_handlers(app)

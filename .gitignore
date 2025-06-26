@@ -17,6 +17,7 @@ htmlcov/
 *.cover
 .hypothesis/
 .pytest_cache/
+*,cov
 
 # ================ 项目特定 ================
 # 日志文件

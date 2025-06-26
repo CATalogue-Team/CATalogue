@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 from app.core.base_crud import BaseCRUD
 
-bp = Blueprint('cats', __name__, url_prefix='/cats')
+bp = Blueprint('admin_cats', __name__, url_prefix='/admin/cats')
 
 def init_cat_crud(cat_service):
     """初始化BaseCRUD (仅限管理后台使用)"""
@@ -11,11 +11,11 @@ def init_cat_crud(cat_service):
         list_template='admin/cats_list.html',  # 仅保留后台模板
         detail_template='admin/cat_detail.html',
         edit_template='admin/edit_cat.html',
-        list_route='cats.admin_cats_list',
-        detail_route='cats.admin_detail',
-        create_route='cats.admin_cats_create',
-        edit_route='cats.admin_cats_edit', 
-        delete_route='cats.admin_cats_delete'
+        list_route='admin_cats.list_cats',
+        detail_route='admin_cats.get_cat',
+        create_route='admin_cats.create_cat',
+        edit_route='admin_cats.update_cat',
+        delete_route='admin_cats.delete_cat'
     )
 
 @bp.route('/api/v1/cats', methods=['GET'])

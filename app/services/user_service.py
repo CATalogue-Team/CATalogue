@@ -10,7 +10,7 @@ class UserService(BaseService):
         
     def get_user_by_username(self, username: str) -> Optional[User]:
         """通过用户名获取用户"""
-        return self.db.query(self.model).filter_by(username=username).first()
+        return self.db.session.query(self.model).filter_by(username=username).first()
     
     def get_pending_users(self) -> List[User]:
         """获取待审批用户列表"""
@@ -25,14 +25,18 @@ class UserService(BaseService):
         if not username or not password:
             raise ValueError("用户名和密码不能为空")
             
-        if self.get_user_by_username(username):
-            raise ValueError("用户名已存在")
-            
-        user = User(username=username, **kwargs)
-        user.set_password(password)
-        self.db.session.add(user)
-        self.db.session.commit()
-        return user
+        try:
+            if self.get_user_by_username(username):
+                raise ValueError("用户名已存在")
+                
+            user = User(username=username, **kwargs)
+            user.set_password(password)
+            self.db.session.add(user)
+            self.db.session.commit()
+            return user
+        except Exception as e:
+            self.db.session.rollback()
+            raise e
     
     def approve_user(self, user_id: int, approved_by: int) -> bool:
         """审批用户账号"""

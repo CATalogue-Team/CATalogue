@@ -173,7 +173,7 @@ class EnvironmentChecker:
                 routes_to_check = [
                     ('main.home', {}),
                     ('auth.login', {}),
-                    ('cats.admin_detail', {'id': 1})
+                    ('cats.get_cat', {'id': 1})
                 ]
                 for route, kwargs in routes_to_check:
                     url_for(route, **kwargs)

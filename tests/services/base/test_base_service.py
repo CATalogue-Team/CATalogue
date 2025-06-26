@@ -29,7 +29,8 @@ def mock_db():
 
 @pytest.fixture
 def base_service(mock_db):
-    return BaseService(mock_db)
+    from app.models import Cat
+    return BaseService(db=mock_db, model=Cat)
 
 class TestBaseService:
     def test_init_validation(self):
@@ -189,15 +190,52 @@ class TestBaseService:
         with pytest.raises(ValueError, match="无效的模型类 - 必须继承自SQLAlchemy模型"):
             base_service.create(InvalidModel)
             
-    @patch('app.services.base_service.logger')
-    def test_init_logging(self, mock_logger):
+    def test_init_logging(self):
         """测试初始化日志记录"""
         mock_db = MagicMock()
         mock_db.session = MagicMock()
         mock_db.session.get = MagicMock()
         
-        service = BaseService(mock_db)
-        mock_logger.info.assert_called_once_with("BaseService initialized with db: %s", mock_db)
+        with patch.object(BaseService, 'logger') as mock_logger:
+            service = BaseService(mock_db)
+            mock_logger.info.assert_called_once_with("BaseService initialized with db: %s", mock_db)
+
+    def test_model_validation(self):
+        """测试model参数验证"""
+        mock_db = MagicMock()
+        mock_db.session = MagicMock()
+        mock_db.session.get = MagicMock()
+        
+        class InvalidModel:
+            pass
+            
+        with pytest.raises(ValueError, match="无效的模型类 - 必须继承自SQLAlchemy模型"):
+            BaseService(mock_db, model=InvalidModel)
+            
+    def test_update_failure(self, base_service, mock_db):
+        """测试更新失败时的回滚和日志记录"""
+        test_obj = MockModel(id=1, name="Old")
+        mock_db.session.get.return_value = test_obj
+        mock_db.session.commit.side_effect = Exception("DB Error")
+        
+        with patch.object(BaseService, 'logger') as mock_logger:
+            with pytest.raises(Exception, match="DB Error"):
+                base_service.update(MockModel, 1, name="New")
+                
+            mock_db.session.rollback.assert_called_once()
+            mock_logger.error.assert_called_once_with("更新失败: DB Error")
+            
+    def test_delete_failure(self, base_service, mock_db):
+        """测试删除失败时的回滚和日志记录"""
+        test_obj = MockModel(id=1)
+        mock_db.session.get.return_value = test_obj
+        mock_db.session.commit.side_effect = Exception("DB Error")
+        
+        with patch.object(BaseService, 'logger') as mock_logger:
+            result = base_service.delete(MockModel, 1)
+            assert result is False
+            mock_db.session.rollback.assert_called_once()
+            mock_logger.error.assert_called_once_with("删除失败: DB Error")
         
     def test_pagination_exception(self, base_service, mock_db):
         """测试分页查询异常处理"""

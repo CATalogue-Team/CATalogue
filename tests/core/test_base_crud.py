@@ -23,11 +23,11 @@ class TestBaseCRUD:
             list_template='cats/list.html',
             detail_template='cats/detail.html',
             edit_template='cats/edit.html',
-            list_route='admin_cats.admin_cats_list',
-            detail_route='admin_cats.admin_cats_edit',
-            create_route='admin_cats.admin_cats_create',
-            edit_route='admin_cats.admin_cats_edit',
-            delete_route='admin_cats.admin_cats_delete'
+            list_route='admin_cats.list_cats',
+            detail_route='admin_cats.get_cat',
+            create_route='admin_cats.create_cat',
+            edit_route='admin_cats.update_cat',
+            delete_route='admin_cats.delete_cat'
         )
         with app.app_context():
             db.create_all()
@@ -47,7 +47,7 @@ class TestBaseCRUD:
             
             response = self.crud.detail(cat.id)
             assert response.status_code == 302
-            assert url_for('admin_cats.admin_cats_list') in response.location
+            assert url_for('admin_cats.list_cats') in response.location
 
     def test_delete(self, app):
         """测试删除操作"""
@@ -67,7 +67,7 @@ class TestBaseCRUD:
                 success_message='删除成功!'
             )
             assert response.status_code == 302
-            assert url_for('admin_cats.admin_cats_list') in response.location
+            assert url_for('admin_cats.list_cats') in response.location
             
             # 测试不存在的item
             response = self.crud.delete(
