@@ -99,10 +99,12 @@ def create_app(config_class=Config):
     migrate = Migrate(app, db)
     
     # 确保在应用上下文中创建表
-    @app.before_first_request
+    @app.cli.command("create-tables")
     def create_tables():
+        """Initialize database tables"""
         with app.app_context():
             db.create_all()
+            print("Database tables created successfully")
     
     app.db = db  # type: ignore  # 使db实例可通过app访问
     cache.init_app(app)
@@ -155,7 +157,19 @@ def create_app(config_class=Config):
     # 保留此空块以兼容现有代码
     
     # 初始化服务(带日志记录)
-    app.logger.info("正在初始化服务...")
+    @app.cli.command("init-app")
+    def init_app():
+        """Initialize application data"""
+        with app.app_context():
+            from app.services.cat_service import CatService
+            from app.services.user_service import UserService
+            app.cat_service = CatService(db)  # type: ignore
+            app.user_service = UserService(db)  # type: ignore
+            from .core.initialization import init_roles, init_admin
+            init_roles()
+            init_admin()
+            app.logger.info("Application initialized successfully")
+    
     try:
         with app.app_context():
             from app.services.cat_service import CatService

@@ -16,7 +16,7 @@ def login():
         if not data or 'username' not in data or 'password' not in data:
             return jsonify({'error': '需要用户名和密码'}), 400
             
-        user = UserService(db).get_user_by_username(data['username'])
+        user = UserService(db.session).get_user_by_username(data['username'])
         
         if user and user.check_password(data['password']):
             if user.status != 'approved':
@@ -38,7 +38,7 @@ def login():
             flash('请输入用户名和密码', 'danger')
             return redirect(url_for('auth.login'))
             
-        user = UserService(db).get_user_by_username(form.username.data)
+        user = UserService(db.session).get_user_by_username(form.username.data)
         
         if user and user.check_password(form.password.data):
             if user.status != 'approved':
@@ -68,7 +68,7 @@ def register():
             return jsonify({'error': '需要用户名和密码'}), 400
             
         try:
-            user = UserService(db).create_user(
+            user = UserService(db.session).create_user(
                 password=data['password'],
                 username=data['username'],
                 is_admin=False,
@@ -96,7 +96,7 @@ def register():
             # 表单验证已确保username存在，这里添加类型断言
             username = str(form.username.data)
             password = str(form.password.data)
-            UserService(db).create_user(
+            UserService(db.session).create_user(
                 password=password,
                 username=username,
                 is_admin=False,

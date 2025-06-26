@@ -10,15 +10,15 @@ class UserService(BaseService):
         
     def get_user_by_username(self, username: str) -> Optional[User]:
         """通过用户名获取用户"""
-        return self.db.session.query(User).filter_by(username=username).first()
+        return self.db.query(self.model).filter_by(username=username).first()
     
     def get_pending_users(self) -> List[User]:
         """获取待审批用户列表"""
-        return self.db.session.query(User).filter_by(status='pending').all()
+        return self.db.query(self.model).filter_by(status='pending').all()
     
     def get_all_users(self) -> List[User]:
         """获取所有用户"""
-        return self.db.session.query(User).all()
+        return self.db.query(self.model).all()
         
     def create_user(self, username: str, password: str, **kwargs) -> User:
         """创建用户账号"""
