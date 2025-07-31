@@ -1,9 +1,6 @@
 <script lang="ts">
-<<<<<<< HEAD
   import { createEventDispatcher } from 'svelte';
 
-=======
->>>>>>> d481a85 (feat: 添加PWA支持配置)
   export let cat: {
     id: string;
     name: string;
@@ -11,7 +8,6 @@
     breed?: string;
     photos: string[];
   };
-<<<<<<< HEAD
 
   export let editable = false;
 
@@ -40,17 +36,10 @@
     {/if}
   </div>
 
-=======
-</script>
-
-<div class="cat-profile">
-  <h2>{cat.name}</h2>
->>>>>>> d481a85 (feat: 添加PWA支持配置)
   <p>年龄: {cat.age}岁</p>
   {#if cat.breed}
     <p>品种: {cat.breed}</p>
   {/if}
-<<<<<<< HEAD
 
   {#if cat.photos.length > 0}
     <div class="photos">
@@ -68,8 +57,6 @@
       on:change={handleFileChange}
     />
   {/if}
-=======
->>>>>>> d481a85 (feat: 添加PWA支持配置)
 </div>
 
 <style>
@@ -79,7 +66,6 @@
     margin-bottom: 1rem;
     border-radius: 4px;
   }
-<<<<<<< HEAD
 
   .header {
     display: flex;
@@ -104,6 +90,4 @@
     max-height: 100px;
     object-fit: cover;
   }
-=======
->>>>>>> d481a85 (feat: 添加PWA支持配置)
 </style>
