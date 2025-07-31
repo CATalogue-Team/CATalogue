@@ -29,3 +29,22 @@ coverage/
 
 # 项目特定
 .clinerules/
+
+# Python相关
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+
+# 构建产物
+dist/
+build/
+
+# 测试相关
+.coverage
+.pytest_cache/
+
+# 开发工具配置
+.prettierrc
+.eslintrc
