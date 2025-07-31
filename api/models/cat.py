@@ -1,8 +1,24 @@
-from datetime import date
+from datetime import datetime, date
 from typing import Optional, List
-from pydantic import BaseModel, Field, validator
 from uuid import UUID
+from sqlalchemy import Column, String, Date, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from pydantic import BaseModel, Field, field_validator
+from ..database import Base
 
+# SQLAlchemy Model
+class DBCat(Base):
+    __tablename__ = "cats"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    breed = Column(String(50), nullable=True)
+    birth_date = Column(Date, nullable=True)
+    owner_id = Column(PG_UUID(as_uuid=True), ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Pydantic Models
 class CatBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     breed: Optional[str] = Field(None, max_length=50)
@@ -12,7 +28,7 @@ class CatBase(BaseModel):
 class CatCreate(CatBase):
     owner_id: UUID
 
-    @validator('name')
+    @field_validator('name')
     def validate_name(cls, v):
         if not v.strip():
             raise ValueError("Name cannot be empty")
@@ -32,3 +48,4 @@ class Cat(CatBase):
 
     class Config:
         orm_mode = True
+        from_attributes = True

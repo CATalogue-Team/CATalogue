@@ -1,9 +1,10 @@
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..models.user import UserInDB
-from ..security import get_password_hash, verify_password
-from ..database import get_db
+from api.models.user import UserInDB, UserCreate, UserUpdate
+from api.security import get_password_hash, verify_password, get_current_user
+from fastapi import Depends
+from api.database import get_db
 
 class UserService:
     @staticmethod

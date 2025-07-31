@@ -21,7 +21,7 @@ async def register(
     db: AsyncSession = Depends(get_db)
 ):
     # 检查用户名是否已存在
-    existing_user = await UserInDB.get(user.username)
+    existing_user = await UserInDB.get(user.username, db)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -42,8 +42,8 @@ async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: AsyncSession = Depends(get_db)
 ):
-    user = await UserInDB.get(form_data.username)
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    user = await UserInDB.get(form_data.username, db)
+    if not user or not verify_password(form_data.password, str(user.hashed_password)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
