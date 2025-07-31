@@ -1,21 +1,25 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
 
-  export let cat: {
+  export interface CatProfileProps {
     id: string;
     name: string;
     age: number;
     breed?: string;
     photos: string[];
-  };
+    editable?: boolean;
+  }
 
-  export let editable = false;
-
-  const dispatch = createEventDispatcher<{
-    photoUpload: File[];
+  export interface CatProfileEvents {
     edit: { id: string };
     delete: { id: string };
-  }>();
+    photoUpload: File[];
+  }
+
+  export let cat: CatProfileProps;
+  export let editable = false;
+
+  const dispatch = createEventDispatcher<CatProfileEvents>();
 
   function handleFileChange(event: Event) {
     const input = event.target as HTMLInputElement;
