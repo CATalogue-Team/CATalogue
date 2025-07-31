@@ -1,5 +1,4 @@
 {
-  "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
     "strict": true,
     "esModuleInterop": true,
@@ -7,7 +6,15 @@
     "forceConsistentCasingInFileNames": true,
     "lib": ["es2015", "dom"],
     "target": "es2015",
-    "types": ["vitest/globals", "@sveltejs/kit"]
+    "module": "node16",
+    "moduleResolution": "node16",
+    "verbatimModuleSyntax": true,
+    "types": ["vitest/globals", "@sveltejs/kit", "@testing-library/svelte"],
+    "baseUrl": ".",
+    "paths": {
+      "*.svelte": ["src/svelte.d.ts"],
+      "@testing-library/svelte/svelte5": ["node_modules/@testing-library/svelte/types/index.d.ts"]
+    }
   },
-  "include": ["src/**/*", "tests/**/*"]
+  "include": ["src/**/*", "tests/**/*", "src/svelte.d.ts"]
 }

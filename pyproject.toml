@@ -12,7 +12,9 @@ dependencies = [
     "uvicorn (>=0.35.0,<0.36.0)",
     "sqlalchemy (>=2.0.42,<3.0.0)",
     "python-jose (>=3.5.0,<4.0.0)",
-    "passlib (>=1.7.4,<2.0.0)"
+    "passlib (>=1.7.4,<2.0.0)",
+    "pydantic[dotenv] (>=2.11.7,<3.0.0)",
+    "python-dotenv (>=1.1.1,<2.0.0)"
 ]
 
 
