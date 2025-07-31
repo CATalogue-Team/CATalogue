@@ -10,6 +10,10 @@ declare module '$lib/components/*.svelte' {
   export default class extends SvelteComponent {}
 }
 
+declare module '$lib/stores/*.ts' {
+  export * from '$lib/stores/*';
+}
+
 declare module '@testing-library/svelte' {
   import { SvelteComponent } from 'svelte';
   export function render<T extends SvelteComponent>(

@@ -3,6 +3,11 @@ import CommunityPage from '../../../src/routes/community/+page.svelte';
 import type { PageData } from '../../../src/routes/community/+page.svelte';
 
 describe('Community Page', () => {
+  it('renders empty state when data is undefined', () => {
+    const { getByText } = render(CommunityPage);
+    expect(getByText('暂无帖子')).toBeInTheDocument();
+  });
+
   it('renders empty state when no posts', () => {
     const { getByText } = render(CommunityPage, {
       props: {

@@ -6,6 +6,7 @@ interface Cat {
   age: number;
   breed?: string;
   photos: string[];
+  editable?: boolean;
 }
 
 interface CatState {
@@ -57,7 +58,7 @@ export const fetchCats = async () => {
   } catch (err) {
     catStore.update(state => ({
       ...state,
-      error: err.message,
+      error: err instanceof Error ? err.message : 'Unknown error',
       loading: false
     }));
   }
@@ -91,7 +92,7 @@ export const fetchCat = async (id: string) => {
   } catch (err) {
     catStore.update(state => ({
       ...state,
-      error: err.message,
+      error: err instanceof Error ? err.message : 'Unknown error',
       loading: false
     }));
   }

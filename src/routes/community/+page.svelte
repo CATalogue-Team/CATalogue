@@ -17,9 +17,8 @@
 
 <script lang="ts">
   import { writable } from 'svelte/store';
-  
-  // TODO: 实现帖子列表数据获取
-  const posts = writable<Post[]>([]);
+  export let data: PageData;
+  const posts = writable<Post[]>(data?.posts || []);
 </script>
 
 <div class="community-page">

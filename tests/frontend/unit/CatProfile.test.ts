@@ -1,5 +1,5 @@
 import { render } from '@testing-library/svelte';
-import { fireEvent } from '@testing-library/user-event';
+import { fireEvent } from '@testing-library/dom';
 import CatProfile from '../../../src/lib/components/CatProfile.svelte';
 
 describe('CatProfile Component', () => {
@@ -41,5 +41,38 @@ describe('CatProfile Component', () => {
     });
 
     expect(queryByText('编辑')).not.toBeInTheDocument();
+    expect(queryByText('删除')).not.toBeInTheDocument();
+  });
+
+  it('emits delete event when delete button clicked', async () => {
+    const { getByText, component } = render(CatProfile, {
+      props: { cat: mockCat, editable: true }
+    });
+
+    const deleteHandler = vi.fn();
+    component.$on('delete', deleteHandler);
+
+    await fireEvent.click(getByText('删除'));
+    expect(deleteHandler).toHaveBeenCalledWith(expect.objectContaining({
+      detail: { id: '1' }
+    }));
+  });
+
+  it('renders without breed information', () => {
+    const catWithoutBreed = { ...mockCat, breed: undefined };
+    const { queryByText } = render(CatProfile, {
+      props: { cat: catWithoutBreed }
+    });
+
+    expect(queryByText('品种:')).not.toBeInTheDocument();
+  });
+
+  it('renders without photos', () => {
+    const catWithoutPhotos = { ...mockCat, photos: [] };
+    const { queryByTestId } = render(CatProfile, {
+      props: { cat: catWithoutPhotos }
+    });
+
+    expect(queryByTestId('photos-container')).not.toBeInTheDocument();
   });
 });
