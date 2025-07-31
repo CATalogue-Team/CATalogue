@@ -1,0 +1,13 @@
+{
+  "extends": "./.svelte-kit/tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["es2015", "dom"],
+    "target": "es2015",
+    "types": ["vitest/globals", "@sveltejs/kit"]
+  },
+  "include": ["src/**/*", "tests/**/*"]
+}
