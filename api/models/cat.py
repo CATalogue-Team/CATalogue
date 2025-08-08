@@ -1,20 +1,20 @@
 from datetime import datetime, date
 from typing import Optional, List
-from uuid import UUID
+from uuid import UUID, uuid4
 from sqlalchemy import Column, String, Date, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from pydantic import BaseModel, Field, field_validator
-from ..database import Base
+from api.db import Base
 
 # SQLAlchemy Model
 class DBCat(Base):
     __tablename__ = "cats"
 
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, index=True)
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, index=True, default=uuid4)
     name = Column(String(100), nullable=False)
     breed = Column(String(50), nullable=True)
     birth_date = Column(Date, nullable=True)
-    owner_id = Column(PG_UUID(as_uuid=True), ForeignKey("users.id"))
+    owner_id = Column(PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -24,15 +24,6 @@ class CatBase(BaseModel):
     breed: Optional[str] = Field(None, max_length=50)
     birth_date: Optional[date] = None
     photos: List[str] = Field(default_factory=list)
-
-class CatCreate(CatBase):
-    owner_id: UUID
-
-    @field_validator('name')
-    def validate_name(cls, v):
-        if not v.strip():
-            raise ValueError("Name cannot be empty")
-        return v.strip()
 
 class CatUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
