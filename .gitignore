@@ -12,6 +12,7 @@ node_modules/
 logs/
 *.log
 npm-debug.log*
+logfile
 
 # 系统文件
 .DS_Store
@@ -36,6 +37,7 @@ __pycache__/
 *.pyo
 *.pyd
 venv/
+.venv/
 
 # 构建产物
 dist/
@@ -44,7 +46,12 @@ build/
 # 测试相关
 .coverage
 .pytest_cache/
+htmlcov/
 
 # 开发工具配置
 .prettierrc
 .eslintrc
+
+#数据库文件
+pgdata/
+*。db/
