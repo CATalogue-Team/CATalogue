@@ -1,15 +1,23 @@
 import { writable } from 'svelte/store';
 
-interface Cat {
+export interface Cat {
   id: string;
   name: string;
   age: number;
   breed?: string;
   photos: string[];
   editable?: boolean;
+  growthRecords?: {
+    id: string,
+    date: string,
+    weight: number,
+    height: number,
+    notes: string,
+    photos: string[]
+  }[]
 }
 
-interface CatState {
+export interface CatState {
   cats: Map<string, Cat>;
   loading: boolean;
   error: string | null;
@@ -31,24 +39,12 @@ export const fetchCats = async () => {
   }));
 
   try {
-    // TODO: Replace with actual API call
-    const mockCats: Cat[] = [
-      {
-        id: '1',
-        name: '小花',
-        age: 2,
-        breed: '英国短毛猫',
-        photos: []
-      },
-      {
-        id: '2',
-        name: '小黑',
-        age: 3,
-        photos: []
-      }
-    ];
-
-    const catsMap = new Map(mockCats.map(cat => [cat.id, cat]));
+    const response = await fetch('/api/v1/cats');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const cats: Cat[] = await response.json();
+    const catsMap = new Map(cats.map(cat => [cat.id, cat]));
     
     catStore.update(state => ({
       ...state,

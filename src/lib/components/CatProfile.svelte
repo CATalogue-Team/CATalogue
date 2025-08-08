@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
 
-  export interface CatProfileProps {
+  interface CatProfileProps {
     id: string;
     name: string;
     age: number;
@@ -10,7 +10,7 @@
     editable?: boolean;
   }
 
-  export interface CatProfileEvents {
+  interface CatProfileEvents {
     edit: { id: string };
     delete: { id: string };
     photoUpload: File[];
@@ -29,7 +29,7 @@
   }
 </script>
 
-<div class="cat-profile">
+<div class="cat-profile" data-testid={`cat-profile-${cat.id}`}>
   <div class="header">
     <h2>{cat.name}</h2>
     {#if editable}

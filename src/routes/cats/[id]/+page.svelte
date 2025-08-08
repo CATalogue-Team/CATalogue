@@ -1,24 +1,35 @@
 <script lang="ts">
-  import { page } from '$app/stores';
-  import CatProfile from '$lib/components/CatProfile.svelte';
-  import { catStore, fetchCat } from '$lib/stores/cat.store';
+  
+  import CatProfileComponent from '../../../lib/components/CatProfile.svelte';
+  import GrowthRecordComponent from '../../../lib/components/GrowthRecord/GrowthRecord.svelte';
+  import { catStore, fetchCat } from '../../../lib/stores/cat.store.ts';
   import { onMount } from 'svelte';
+  import type { CatState, Cat } from '../../../lib/stores/cat.store.ts';
 
   export let data;
+  let unsubscribe: () => void;
+  
+  // 声明响应式变量
+  let cat: Cat | undefined;
   let loading = true;
   let error: string | null = null;
-
-  onMount(async () => {
-    try {
-      await fetchCat(data.params.id);
-      loading = false;
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'Unknown error';
-      loading = false;
-    }
+  
+  // 使用store自动更新变量
+  $: {
+    cat = $catStore.cats.get(data.params.id);
+    loading = $catStore.loading;
+    error = $catStore.error;
+  }
+  
+  onMount(() => {
+    fetchCat(data.params.id).catch(err => {
+      console.error('Failed to fetch cat:', err);
+    });
+    
+    return () => {
+    };
   });
-
-  $: cat = $catStore.cats.get(data.params.id);
+  
 </script>
 
 <svelte:head>
@@ -35,7 +46,17 @@
   {:else if !cat}
     <p>未找到猫咪信息</p>
   {:else}
-    <CatProfile {cat} />
+    <CatProfileComponent cat={cat} />
+    <h2>成长记录</h2>
+    {#if cat.growthRecords && cat.growthRecords.length > 0}
+      <div class="growth-records">
+        {#each cat.growthRecords as record (record.id)}
+          <GrowthRecordComponent record={record} editable={true} />
+        {/each}
+      </div>
+    {:else}
+      <p>暂无成长记录</p>
+    {/if}
   {/if}
 </div>
 

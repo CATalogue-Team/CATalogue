@@ -1,6 +1,11 @@
 {
   "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
+    "paths": {
+      "$lib/*": ["src/lib/*"],
+      "$lib/test-adapters": ["src/lib/test-adapters"]
+    },
+    "allowImportingTsExtensions": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -11,10 +16,11 @@
     "moduleResolution": "node16",
     "verbatimModuleSyntax": true,
     "types": ["vitest/globals", "@sveltejs/kit", "@testing-library/svelte"],
-    "baseUrl": ".",
+    "baseUrl": "src",
     "paths": {
-      "*.svelte": ["src/svelte.d.ts"],
-      "@testing-library/svelte/svelte5": ["node_modules/@testing-library/svelte/types/index.d.ts"]
+      "$lib": ["lib"],
+      "$lib/*": ["lib/*"],
+      "src/*": ["*"]
     }
   },
   "include": ["src/**/*", "tests/**/*", "src/svelte.d.ts"]

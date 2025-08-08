@@ -1,30 +1,25 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import CatProfile from '$lib/components/CatProfile.svelte';
-  import { catStore, fetchCats } from '$lib/stores/cat.store';
+  import * as catStoreModule from '$lib/stores/cat.store';
   import { onMount } from 'svelte';
 
-  let loading = true;
-  let error: string | null = null;
+  const { catStore, fetchCats } = catStoreModule;
 
   onMount(async () => {
-    try {
-      await fetchCats();
-      loading = false;
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'Unknown error';
-      loading = false;
-    }
+    await fetchCats();
   });
 
   $: cats = Array.from($catStore.cats.values());
+  $: loading = $catStore.loading;
+  $: error = $catStore.error;
 </script>
 
 <svelte:head>
   <title>CATalogue - 猫咪档案</title>
 </svelte:head>
 
-<div class="container">
+<div class="container" data-testid="cats-container">
   <h1>猫咪档案</h1>
   
   {#if loading}
