@@ -1,10 +1,17 @@
-from sqlalchemy import Column, String, Boolean, DateTime
+from sqlalchemy import Column, String, Boolean, DateTime, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from uuid import UUID, uuid4
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.orm import relationship
 from api.db import Base
 
 class DBUser(Base):
+    @classmethod
+    async def get_by_username(cls, db: AsyncSession, username: str) -> "DBUser | None":
+        result = await db.execute(select(cls).where(cls.username == username))
+        return result.scalars().first()
+
     __tablename__ = "users"
 
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
@@ -16,3 +23,7 @@ class DBUser(Base):
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    # 关系定义
+    posts = relationship("Post", back_populates="author")
+    comments = relationship("Comment", back_populates="author")

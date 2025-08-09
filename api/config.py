@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     DB_HOST: str = "localhost"
     DB_PORT: str = "5433"
     DB_NAME: str = "catalogue"
+    MONGO_URI: str = "mongodb://localhost:27017"
+    MONGO_DB: str = "catalogue"
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
     PG_DATA_DIR: str = "D:\\DevTools\\PostgreSQL\\data"  # 默认值，会被.env覆盖
 

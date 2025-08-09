@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .routers.cats import router as cats_router
 from .routers.users import router as users_router
+from .routers.posts import router as posts_router
 
 def create_app():
     app = FastAPI(
@@ -31,6 +32,11 @@ def create_app():
         users_router,
         prefix="",
         tags=["用户管理"]
+    )
+    app.include_router(
+        posts_router,
+        prefix="",
+        tags=["社区帖子"]
     )
 
     @app.get("/api/v1/health")

@@ -5,15 +5,7 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from api.models.user_model import DBUser
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-
-class UserBase(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
-    email: EmailStr
-    full_name: Optional[str] = None
-
-class UserCreate(UserBase):
-    password: str = Field(..., min_length=8)
-    email: EmailStr
+from api.schemas.user import UserBase, UserCreate, UserUpdate
 
 class UserInDB(BaseModel):
     id: UUID = Field(default_factory=uuid4)
@@ -22,7 +14,7 @@ class UserInDB(BaseModel):
     full_name: Optional[str] = None
     hashed_password: str
     disabled: bool = False
-    is_admin: bool = Field(default=False, exclude=True)  # 添加exclude=True避免与SQLAlchemy列冲突
+    is_admin: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
@@ -210,17 +202,19 @@ class UserInDB(BaseModel):
         return user
 
     async def update(self, user_update: "UserUpdate", db: AsyncSession):
-        # 直接使用当前实例进行更新
+        # 创建临时UserInDB用于更新
+        temp_user = UserInDB(**self.model_dump())
         update_data = user_update.model_dump(exclude_unset=True)
+        
         if "password" in update_data:
-            self.hashed_password = self.get_password_hash(update_data.pop("password"))
+            temp_user.hashed_password = self.get_password_hash(update_data.pop("password"))
         
         for field, value in update_data.items():
-            if value is not None and hasattr(self, field):
-                setattr(self, field, value)
+            if value is not None and hasattr(temp_user, field):
+                setattr(temp_user, field, value)
         
-        # 模拟更新操作
-        return self
+        # 返回更新后的UserInDB实例
+        return temp_user
 
     async def delete(self, db: AsyncSession):
         user = await self.__class__.get_by_id(self.id, db)
@@ -245,11 +239,6 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
-
-class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = None
-    password: Optional[str] = Field(None, min_length=8)
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr

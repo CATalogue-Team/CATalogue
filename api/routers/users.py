@@ -24,7 +24,8 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
         username=user.username,
         email=user.email,
         full_name=user.full_name,
-        hashed_password=user.password  # 实际项目中应该先哈希密码
+        hashed_password=UserInDB.get_password_hash(user.password),
+        is_admin=user.is_admin
     )
     await user_in_db.save(db)
     return user_in_db
@@ -71,13 +72,8 @@ async def update_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials"
         )
-    # 将UserUpdate转换为字典，过滤掉None值
-    update_data = user_update.model_dump(exclude_unset=True)
-    # 创建临时UserInDB用于更新
-    temp_user = UserInDB(**current_user.model_dump())
-    for field, value in update_data.items():
-        setattr(temp_user, field, value)
-    updated_user = await current_user.update(temp_user, db)
+    # 直接使用UserUpdate对象更新
+    updated_user = await current_user.update(user_update, db)
     return updated_user
 
 @router.delete("/me")
@@ -169,12 +165,8 @@ async def update_user(
     user = await UserInDB.get_by_id(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    # 将UserUpdate转换为UserInDB
-    update_data = user_update.model_dump(exclude_unset=True)
-    temp_user = UserInDB(**user.model_dump())
-    for field, value in update_data.items():
-        setattr(temp_user, field, value)
-    updated_user = await user.update(temp_user, db)
+    # 直接使用UserUpdate对象更新
+    updated_user = await user.update(user_update, db)
     return updated_user
 
 @router.delete("/{user_id}")
