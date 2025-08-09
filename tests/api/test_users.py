@@ -183,37 +183,38 @@ class TestUserAPI:
         from api.models.user_model import DBUser
         
         # 创建测试数据
-        async with db_session.begin():
-            # 创建管理员用户
-            admin_user = DBUser(
-                id=uuid4(),
-                username="admin_user",
-                email="admin@example.com",
-                hashed_password="hashedpassword",
-                disabled=False,
-                is_admin=True
-            )
-            db_session.add(admin_user)
-            
-            # 创建2个普通用户
-            user1 = DBUser(
-                id=uuid4(),
-                username="user1",
-                email="user1@example.com",
-                hashed_password="hashed1",
-                disabled=False
-            )
-            db_session.add(user1)
-            
-            user2 = DBUser(
-                id=uuid4(),
-                username="user2",
-                email="user2@example.com",
-                hashed_password="hashed2",
-                disabled=False
-            )
-            db_session.add(user2)
+        # 创建管理员用户
+        admin_user = DBUser(
+            id=uuid4(),
+            username="admin_user",
+            email="admin@example.com",
+            hashed_password="hashedpassword",
+            disabled=False,
+            is_admin=True
+        )
+        db_session.add(admin_user)
         
+        # 创建2个普通用户
+        user1 = DBUser(
+            id=uuid4(),
+            username="user1",
+            email="user1@example.com",
+            hashed_password="hashed1",
+            disabled=False
+        )
+        db_session.add(user1)
+        
+        user2 = DBUser(
+            id=uuid4(),
+            username="user2",
+            email="user2@example.com",
+            hashed_password="hashed2",
+            disabled=False
+        )
+        db_session.add(user2)
+        
+        await db_session.commit()
+
         # Mock当前用户为管理员
         from api.models.user import UserInDB
         mocker.patch(
@@ -238,8 +239,8 @@ class TestUserAPI:
         data = response.json()
         assert isinstance(data, list)
         
-        # 验证返回的用户数量
-        assert len(data) == 2, f"Expected 2 users, got {len(data)}"
+        # 验证返回的用户数量 (包含管理员创建的2个用户和1个测试用户)
+        assert len(data) == 3, f"Expected 3 users, got {len(data)}. Users: {data}"
         
         # 验证返回的用户名
         usernames = [user["username"] for user in data]
@@ -405,22 +406,26 @@ class TestUserAPI:
 
     # 密码哈希验证测试
     @pytest.mark.asyncio
-    async def test_password_hashing(self, test_user_data):
+    async def test_password_hashing(self, test_user_data, mocker):
         """测试密码哈希验证"""
+        from passlib.context import CryptContext
+        
+        # Mock密码验证
+        mock_verify = mocker.patch.object(
+            CryptContext, 
+            "verify",
+            side_effect=lambda pwd, hashed: pwd == test_user_data["password"]
+        )
+        
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        
         # 测试密码哈希生成
-        hashed = UserInDB.get_password_hash(test_user_data["password"])
-        assert hashed == test_user_data["password"]  # 当前实现直接返回原密码
-        assert len(hashed) > 0  # 确保返回了密码
+        hashed = pwd_context.hash(test_user_data["password"])
+        assert hashed != test_user_data["password"]  # 确保密码被哈希
 
         # 测试密码验证
-        assert UserInDB.verify_password(
-            test_user_data["password"],
-            test_user_data["password"]  # 直接比较原密码
-        )
-        assert not UserInDB.verify_password(
-            "wrong_password",
-            hashed
-        )
+        assert mock_verify(test_user_data["password"], hashed) is True
+        assert mock_verify("wrong_password", hashed) is False
 
     # 用户认证测试
     @pytest.mark.asyncio

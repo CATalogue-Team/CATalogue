@@ -1,35 +1,30 @@
-<script context="module" lang="ts">
-  interface User {
-    id: string;
-    name: string;
-  }
-
-  interface Post {
-    id: string;
-    title: string;
-    author: User;
-  }
-
-  export interface PageData {
-    posts: Post[];
-  }
-</script>
-
 <script lang="ts">
-  import { writable } from 'svelte/store';
-  export let data: PageData;
-  const posts = writable<Post[]>(data?.posts || []);
+  import { onMount } from 'svelte';
+  import { postStore } from '../../lib/stores/post.store.ts';
+  
+  $: loading = $postStore.loading;
+  $: error = $postStore.error;
+  $: posts = $postStore.posts;
+  
+  onMount(() => {
+    postStore.fetchPosts();
+  });
 </script>
 
 <div class="community-page">
   <h1>社区论坛</h1>
   
-  {#if $posts.length > 0}
+  {#if loading}
+    <p>加载中...</p>
+  {:else if error}
+    <p class="error">{error}</p>
+  {:else if posts.length > 0}
     <div class="post-list">
-      {#each $posts as post (post.id)}
+      {#each posts as post (post.id)}
         <a href={`/community/${post.id}`} class="post-item">
           <h3>{post.title}</h3>
-          <p>作者: {post.author.name}</p>
+          <p>作者ID: {post.author_id}</p>
+          <p>发布于: {new Date(post.created_at).toLocaleString()}</p>
         </a>
       {/each}
     </div>

@@ -203,9 +203,9 @@ describe('CatDetailPage', () => {
     
     // 检查猫咪详情和成长记录
     const profileElement = await screen.findByText(/猫咪详情/);
-    const recordsElement = await screen.findByText(/成长记录/);
+    const recordsTitle = await screen.findByRole('heading', { name: '成长记录' });
     expect(profileElement).toBeInTheDocument();
-    expect(recordsElement).toBeInTheDocument();
+    expect(recordsTitle).toBeInTheDocument();
     
     // 检查详细内容
     expect(await screen.findByText('2025-01-01')).toBeInTheDocument();

@@ -57,12 +57,16 @@ async def test_user_get_by_username(mock_db_session, sample_user_data):
     user_id = uuid4()
     
     # 创建真实对象代替Mock
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    hashed_password = pwd_context.hash("testpassword123")
+    
     user_dict = {
         "id": user_id,
         "username": sample_user_data["username"],
         "email": sample_user_data["email"],
         "full_name": sample_user_data["full_name"],
-        "hashed_password": sample_user_data["hashed_password"],
+        "hashed_password": hashed_password,
         "disabled": sample_user_data["disabled"],
         "is_admin": sample_user_data["is_admin"],
         "created_at": datetime.now(),
@@ -86,12 +90,16 @@ async def test_user_get_by_id(mock_db_session, sample_user_data):
     user_id = uuid4()
     
     # 创建真实对象代替Mock
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    hashed_password = pwd_context.hash("testpassword123")
+    
     user_dict = {
         "id": user_id,
         "username": sample_user_data["username"],
         "email": sample_user_data["email"],
         "full_name": sample_user_data["full_name"],
-        "hashed_password": sample_user_data["hashed_password"],
+        "hashed_password": hashed_password,
         "disabled": sample_user_data["disabled"],
         "is_admin": sample_user_data["is_admin"],
         "created_at": datetime.now(),
@@ -114,12 +122,16 @@ async def test_user_authentication_success(mock_db_session, sample_user_data):
     user_id = uuid4()
 
     # 创建真实对象代替Mock
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    hashed_password = pwd_context.hash("testpassword123")
+    
     user_dict = {
         "id": user_id,
         "username": sample_user_data["username"],
         "email": sample_user_data["email"],
         "full_name": sample_user_data["full_name"],
-        "hashed_password": sample_user_data["hashed_password"],
+        "hashed_password": hashed_password,
         "disabled": sample_user_data["disabled"],
         "is_admin": sample_user_data["is_admin"],
         "created_at": datetime.now(),

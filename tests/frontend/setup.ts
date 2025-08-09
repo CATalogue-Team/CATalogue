@@ -28,6 +28,18 @@ vi.mock('$app/navigation', () => ({
   invalidate: vi.fn()
 }));
 
+// Mock auth store
+vi.mock('$lib/stores/auth.store', () => ({
+  authStore: {
+    set: vi.fn(),
+    subscribe: vi.fn((fn) => {
+      fn({ isAuthenticated: false, user: null });
+      return () => {};
+    }),
+    update: vi.fn()
+  }
+}));
+
 // 配置测试库以正确处理SvelteKit页面组件
 vi.mock('../../../src/routes/cats/+page.svelte', () => ({
   default: {

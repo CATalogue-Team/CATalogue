@@ -1,53 +1,36 @@
 import { render } from '@testing-library/svelte';
-import { screen, fireEvent } from '@testing-library/dom';
-import { vi } from 'vitest';
+import '@testing-library/jest-dom';
 import HomePage from '../../../src/routes/+page.svelte';
+import { authStore } from '$lib/stores/auth.store.ts';
+import type { Mock } from 'vitest';
 
-describe('Home Page', () => {
-  beforeEach(() => {
-    // Mock SvelteKit navigation
-    vi.mock('$app/navigation', () => ({
-      goto: vi.fn()
-    }));
+describe('HomePage Component', () => {
+  it('renders welcome message', () => {
+    const { getByText } = render(HomePage);
+    expect(getByText('欢迎来到CATalogue')).toBeInTheDocument();
+    expect(getByText('专业的猫咪档案管理与社区平台')).toBeInTheDocument();
   });
 
-  it('renders title and description', () => {
-    render(HomePage);
-    
-    expect(screen.getByText('欢迎来到CATalogue')).toBeInTheDocument();
-    expect(screen.getByText('猫咪档案管理与社区平台')).toBeInTheDocument();
+  it('shows login buttons by default', () => {
+    const { getByText } = render(HomePage);
+    expect(getByText('登录')).toBeInTheDocument();
+    expect(getByText('注册')).toBeInTheDocument();
   });
 
-  it('renders test button', () => {
-    render(HomePage);
+  it('shows app buttons when authenticated', async () => {
+    const mockAuthState = { 
+      isAuthenticated: true, 
+      user: { username: 'test', email: 'test@example.com' } 
+    };
     
-    const button = screen.getByText('转到 GrowthRecord 组件测试页');
-    expect(button).toBeInTheDocument();
-  });
+    (authStore.subscribe as Mock).mockImplementation((fn) => {
+      fn(mockAuthState);
+      return () => {};
+    });
 
-  it('calls goto on button click', async () => {
-    const { component } = render(HomePage);
-    const mockGoto = await import('$app/navigation').then(m => m.goto);
-    
-    const button = screen.getByText('转到 GrowthRecord 组件测试页');
-    fireEvent.click(button);
-    
-    expect(mockGoto).toHaveBeenCalledWith('/temp-test');
-  });
-
-  it('applies correct styles', () => {
-    const { container } = render(HomePage);
-    
-    const containerDiv = container.querySelector('.container');
-    expect(containerDiv).toBeInTheDocument();
-    
-    // 检查样式类是否存在
-    expect(containerDiv).toHaveClass('container');
-    
-    const h1 = container.querySelector('h1') as HTMLHeadingElement;
-    expect(h1).toBeInTheDocument();
-    
-    // 检查样式属性是否存在
-    expect(getComputedStyle(h1).color).toBeTruthy();
+    const { getByText } = render(HomePage);
+    await new Promise(resolve => setTimeout(resolve, 100)); // Longer wait for Svelte reactivity
+    expect(getByText('查看猫咪档案')).toBeInTheDocument();
+    expect(getByText('进入社区')).toBeInTheDocument();
   });
 });

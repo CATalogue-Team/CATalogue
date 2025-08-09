@@ -181,11 +181,9 @@ class UserInDB(BaseModel):
 
     @classmethod
     def verify_password(cls, plain_password: str, hashed_password: str) -> bool:
-        # 简化示例，实际应该使用bcrypt等安全哈希算法
-        # 确保处理哈希密码前缀
-        if hashed_password.startswith('hashed_'):
-            return hashed_password.endswith(plain_password)
-        return plain_password == hashed_password
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        return pwd_context.verify(plain_password, hashed_password)
 
     @classmethod
     def get_password_hash(cls, password: str) -> str:

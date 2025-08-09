@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError as JWTError
 from typing import Annotated
 from datetime import datetime, timedelta, timezone
 from api.schemas.user import TokenData
