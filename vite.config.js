@@ -2,7 +2,6 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
-import serviceManager from './scripts/service-manager';
 
 export default defineConfig({
   resolve: {
@@ -11,7 +10,6 @@ export default defineConfig({
     }
   },
   plugins: [
-    serviceManager(),
     sveltekit(),
     VitePWA({
       registerType: 'autoUpdate',

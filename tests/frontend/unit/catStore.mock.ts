@@ -36,8 +36,12 @@ export const mockFetchCats = vi.fn().mockImplementation(async () => {
   mockCatStore.setCats([{
     id: '1',
     name: '猫咪1',
-    age: 2,
-    photos: []
+    birth_date: '2023-08-16',
+    photos: [],
+    breed: '田园猫',
+    owner_id: 'user1',
+    created_at: '2023-08-16T00:00:00Z',
+    updated_at: '2023-08-16T00:00:00Z'
   }]);
   mockCatStore.setLoading(false);
   return true;

@@ -14,10 +14,13 @@ import type { Cat } from '../../../src/lib/stores/cat.store.ts';
 describe('catStore', () => {
   const mockCat1: Cat = {
     id: '1',
-    name: '小花',
-    age: 2,
-    breed: '英国短毛猫',
-    photos: []
+    name: '猫咪1',
+    birth_date: '2023-08-16',
+    photos: [],
+    breed: '田园猫',
+    owner_id: 'user1',
+    created_at: '2023-08-16T00:00:00Z',
+    updated_at: '2023-08-16T00:00:00Z'
   };
   
   beforeEach(() => {
@@ -167,8 +170,10 @@ describe('catStore', () => {
 
       const result = await createCat({
         name: '新猫咪',
-        age: 1,
-        photos: []
+        birth_date: '2023-08-16',
+        photos: [],
+        breed: '田园猫',
+        owner_id: 'user1'
       });
       
       const state = get(catStore);
@@ -186,8 +191,10 @@ describe('catStore', () => {
       try {
         await createCat({
           name: '新猫咪',
-          age: 1,
-          photos: []
+          birth_date: '2023-08-16',
+          photos: [],
+          breed: '田园猫',
+          owner_id: 'user1'
         });
       } catch (err) {
         const state = get(catStore);
