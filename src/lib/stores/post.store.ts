@@ -1,5 +1,5 @@
 import { writable , get , type Writable} from 'svelte/store';
-import { authStore } from './auth.store.ts';
+import { authStore, refreshToken } from './auth.store.ts';
 
 export interface Post {
   id: string;
@@ -44,17 +44,59 @@ function createPostStore() {
   async function fetchPosts(): Promise<void> {
     update(state => ({ ...state, loading: true, error: null }));
     try {
-      const { token } = get(authStore);
-      if (!token) throw new Error('未授权，请先登录');
+      const authState = get(authStore);
+      if (!authState.token || typeof authState.token !== 'string') throw new Error('未授权，请先登录');
+      
+      console.log('Current auth state:', authState);
+      console.log('Fetching posts with token:', authState.token);
+      console.log('Request headers:', {
+        'Authorization': `Bearer ${authState.token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      });
+      const headers = {
+        'Authorization': `Bearer ${authState.token}`.trim(),
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      console.log('Final request headers:', headers);
       
       const response = await fetch(`${baseUrl}/posts`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        method: 'GET',
+        headers,
+        credentials: 'include'
       });
+      console.log('Request URL:', `${baseUrl}/posts`);
+      console.log('Request headers:', {
+        'Authorization': `Bearer ${authState.token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      });
+      console.log('Response status:', response.status);
+      const headersObj: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+      console.log('Response headers:', headersObj);
+      console.log('Posts API response:', response.status, await response.clone().json()); // 调试日志
+      
+      if (response.status === 401) {
+        console.log('Token已过期，尝试刷新');
+        const refreshed = await refreshToken();
+        if (!refreshed) {
+          authStore.update(state => ({ ...state, isAuthenticated: false }));
+          localStorage.removeItem('authToken');
+          throw new Error('会话已过期，请重新登录');
+        }
+        return await fetchPosts(); // 重试请求
+      }
       if (!response.ok) throw new Error(response.statusText);
-      const { data } = await response.json();
-      const posts = data as Post[];
+      
+      const result = await response.json();
+      // 处理不同格式的响应
+      const posts = Array.isArray(result.data) ? result.data : 
+                   Array.isArray(result) ? result : 
+                   [];
       update(state => ({ ...state, posts, loading: false }));
     } catch (err) {
       const error = err instanceof Error ? err.message : 'Unknown error';
@@ -66,16 +108,46 @@ function createPostStore() {
     update(state => ({ ...state, loading: true, error: null }));
     try {
       const { token } = get(authStore);
-      if (!token) throw new Error('未授权，请先登录');
+      if (!token || typeof token !== 'string') throw new Error('未授权，请先登录');
+      
+      const headers = {
+        'Authorization': `Bearer ${token}`.trim(),
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      console.log('Final request headers:', headers);
       
       const response = await fetch(`${baseUrl}/posts/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers,
+        credentials: 'include'
       });
+      console.log('Request URL:', `${baseUrl}/posts/${id}`);
+      console.log('Request headers:', {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      });
+      console.log('Response status:', response.status);
+      const headersObj: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+      console.log('Response headers:', headersObj);
+      
+      if (response.status === 401) {
+        console.log('Token已过期，尝试刷新');
+        const refreshed = await refreshToken();
+        if (!refreshed) {
+          authStore.update(state => ({ ...state, isAuthenticated: false }));
+          localStorage.removeItem('authToken');
+          throw new Error('会话已过期，请重新登录');
+        }
+        return await fetchPost(id); // 重试请求
+      }
       if (!response.ok) throw new Error(response.statusText);
-      const { data } = await response.json();
-      const post = data as Post;
+      
+      const result = await response.json();
+      // 处理不同格式的响应
+      const post = result.data || result;
       update(state => ({ ...state, currentPost: post, loading: false }));
     } catch (err) {
       const error = err instanceof Error ? err.message : 'Unknown error';
@@ -87,18 +159,36 @@ function createPostStore() {
     update(state => ({ ...state, loading: true, error: null }));
     try {
       const { token } = get(authStore);
-      if (!token) throw new Error('未授权，请先登录');
+      if (!token || typeof token !== 'string') throw new Error('未授权，请先登录');
+      
+      const headers = {
+        'Authorization': `Bearer ${token}`.trim(),
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      console.log('Creating post with headers:', headers);
       
       const response = await fetch(`${baseUrl}/posts`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
+        credentials: 'include',
         body: JSON.stringify(post)
       });
+      console.log('Create post response:', response.status);
+      
+      if (response.status === 401) {
+        console.log('Token已过期，尝试刷新');
+        const refreshed = await refreshToken();
+        if (!refreshed) {
+          authStore.update(state => ({ ...state, isAuthenticated: false }));
+          localStorage.removeItem('authToken');
+          throw new Error('会话已过期，请重新登录');
+        }
+        return await createPost(post); // 重试请求
+      }
       if (!response.ok) throw new Error(response.statusText);
-      const { data } = await response.json();
+      const result = await response.json();
+      const data = result.data || result;
       if (!data) throw new Error('No data returned');
       await fetchPosts();
       return true;
@@ -113,18 +203,36 @@ function createPostStore() {
     update(state => ({ ...state, loading: true, error: null }));
     try {
       const { token } = get(authStore);
-      if (!token) throw new Error('未授权，请先登录');
+      if (!token || typeof token !== 'string') throw new Error('未授权，请先登录');
+      
+      const headers = {
+        'Authorization': `Bearer ${token}`.trim(),
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      console.log('Updating post with headers:', headers);
       
       const response = await fetch(`${baseUrl}/posts/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
+        credentials: 'include',
         body: JSON.stringify(post)
       });
+      console.log('Update post response:', response.status);
+      
+      if (response.status === 401) {
+        console.log('Token已过期，尝试刷新');
+        const refreshed = await refreshToken();
+        if (!refreshed) {
+          authStore.update(state => ({ ...state, isAuthenticated: false }));
+          localStorage.removeItem('authToken');
+          throw new Error('会话已过期，请重新登录');
+        }
+        return await updatePost(id, post); // 重试请求
+      }
       if (!response.ok) throw new Error(response.statusText);
-      const { data } = await response.json();
+      const result = await response.json();
+      const data = result.data || result;
       if (!data) throw new Error('No data returned');
       await fetchPosts();
       if (get(postStore).currentPost?.id === id) {
@@ -142,16 +250,35 @@ function createPostStore() {
     update(state => ({ ...state, loading: true, error: null }));
     try {
       const { token } = get(authStore);
-      if (!token) throw new Error('未授权，请先登录');
+      if (!token || typeof token !== 'string') throw new Error('未授权，请先登录');
+      
+      const headers = {
+        'Authorization': `Bearer ${token}`.trim(),
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      console.log('Deleting post with headers:', headers);
       
       const response = await fetch(`${baseUrl}/posts/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers,
+        credentials: 'include'
       });
+      console.log('Delete post response:', response.status);
+      
+      if (response.status === 401) {
+        console.log('Token已过期，尝试刷新');
+        const refreshed = await refreshToken();
+        if (!refreshed) {
+          authStore.update(state => ({ ...state, isAuthenticated: false }));
+          localStorage.removeItem('authToken');
+          throw new Error('会话已过期，请重新登录');
+        }
+        return await deletePost(id); // 重试请求
+      }
       if (!response.ok) throw new Error(response.statusText);
-      const { data } = await response.json();
+      const result = await response.json();
+      const data = result.data || result;
       if (!data) throw new Error('No data returned');
       update(state => ({
         ...state,
@@ -170,7 +297,7 @@ function createPostStore() {
     update(state => ({ ...state, loading: true, error: null }));
     try {
       const { token, user } = get(authStore);
-      if (!token || !user?.id) throw new Error('未授权，请先登录');
+      if (!token || typeof token !== 'string' || !user?.id) throw new Error('未授权，请先登录');
       
       const response = await fetch(`${baseUrl}/posts/${postId}/comments`, {
         method: 'POST',
@@ -178,11 +305,24 @@ function createPostStore() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
+        credentials: 'include',
         body: JSON.stringify({
           ...comment,
           author_id: user.id
         })
       });
+      
+      // 处理401错误
+      if (response.status === 401) {
+        console.log('Token已过期，尝试刷新');
+        const refreshed = await refreshToken();
+        if (!refreshed) {
+          authStore.update(state => ({ ...state, isAuthenticated: false }));
+          localStorage.removeItem('authToken');
+          throw new Error('会话已过期，请重新登录');
+        }
+        return await addComment(postId, comment); // 重试请求
+      }
       if (!response.ok) throw new Error(response.statusText);
       return true;
     } catch (err) {
@@ -196,14 +336,32 @@ function createPostStore() {
     update(state => ({ ...state, loading: true, error: null }));
     try {
       const { token } = get(authStore);
-      if (!token) throw new Error('未授权，请先登录');
+      if (!token || typeof token !== 'string') throw new Error('未授权，请先登录');
+      
+      const headers = {
+        'Authorization': `Bearer ${token}`.trim(),
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      console.log('Deleting comment with headers:', headers);
       
       const response = await fetch(`${baseUrl}/posts/${postId}/comments/${commentId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers,
+        credentials: 'include'
       });
+      console.log('Delete comment response:', response.status);
+      
+      if (response.status === 401) {
+        console.log('Token已过期，尝试刷新');
+        const refreshed = await refreshToken();
+        if (!refreshed) {
+          authStore.update(state => ({ ...state, isAuthenticated: false }));
+          localStorage.removeItem('authToken');
+          throw new Error('会话已过期，请重新登录');
+        }
+        return await deleteComment(postId, commentId); // 重试请求
+      }
       if (!response.ok) throw new Error(response.statusText);
       return true;
     } catch (err) {

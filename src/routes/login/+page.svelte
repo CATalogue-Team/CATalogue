@@ -34,8 +34,40 @@
         throw new Error(data.detail || '登录失败');
       }
 
-      const { access_token } = await response.json();
-      login(access_token);
+      const result = await response.json();
+      const token = result.access_token || result.token;
+      if (!token) {
+        throw new Error('未收到有效的token');
+      }
+      
+      // 更新本地存储
+      localStorage.setItem('authToken', token);
+      
+      // 获取用户信息
+      const userResponse = await fetch('/api/v1/users/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!userResponse.ok) {
+        throw new Error('获取用户信息失败');
+      }
+      
+      const userData = await userResponse.json();
+      
+      // 更新store状态
+      authStore.update(state => ({
+        ...state,
+        isAuthenticated: true,
+        token: token,
+        user: {
+          id: userData.id,
+          username: userData.username,
+          email: userData.email
+        }
+      }));
+      
       goto('/');
     } catch (err) {
       error = err instanceof Error ? err.message : '登录失败';
